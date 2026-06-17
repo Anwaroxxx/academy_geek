@@ -2,10 +2,9 @@
 
 use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
-Route::inertia('/', function () {
-    return Inertia::render('Welcome/index');
-})->name('home');
+Route::inertia('/', 'welcome/index')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
