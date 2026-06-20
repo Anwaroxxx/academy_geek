@@ -10,7 +10,13 @@ export default function AppLayout({
 }) {
   return (
     <AppLayoutTemplate breadcrumbs={breadcrumbs}>
-            {children}
-        </AppLayoutTemplate>);
+      <div
+        className={`bg-light dark:bg-dark  mx-auto my-6 h-full w-[96%] rounded-lg shadow-lg`}
+
+      >
+        {children}
+
+      </div>
+    </AppLayoutTemplate>);
 
 }
