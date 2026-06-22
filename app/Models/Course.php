@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
-#[Fillable(['created_by', 'title', 'slug', 'description', 'thumbnail_url', 'content_types', 'status'])]
+#[Fillable(['created_by', 'title', 'slug', 'description', 'thumbnail_url', 'content_types', 'status', 'estimated_duration_days'])]
 class Course extends Model
 {
     public function creator(): BelongsTo
@@ -20,6 +20,11 @@ class Course extends Model
     public function modules(): HasMany
     {
         return $this->hasMany(Module::class);
+    }
+
+    public function chapters(): HasManyThrough
+    {
+        return $this->hasManyThrough(Chapter::class, Module::class);
     }
 
     public function coursePromotions(): HasMany

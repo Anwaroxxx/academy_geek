@@ -8,7 +8,8 @@ interface TextProps {
 }
 
 export const TransText: React.FC<TextProps> = (props) => {
-    const { selectedLanguage } = useAppContext();
+    const appContext = useAppContext();
+    const selectedLanguage = appContext?.selectedLanguage ?? localStorage.getItem('language') ?? 'en';
     const allowedLanguages = ['ar', 'fr', 'en'];
 
     if (!allowedLanguages.includes(selectedLanguage as keyof TextProps)) {

@@ -11,7 +11,9 @@ createInertiaApp({
   title: (title) => title ? `${title} - ${appName}` : appName,
   layout: (name) => {
     switch (true) {
-      case name === 'welcome':
+      case name.startsWith('welcome'):
+        return null;
+      case name.startsWith('courses/'):
         return null;
       case name.startsWith('settings/'):
         return [AppLayout, SettingsLayout];
@@ -23,9 +25,9 @@ createInertiaApp({
   withApp(app) {
     return (
       <TooltipProvider delayDuration={0}>
-                {app}
-                <Toaster />
-            </TooltipProvider>);
+        {app}
+        <Toaster />
+      </TooltipProvider>);
 
   },
   progress: {

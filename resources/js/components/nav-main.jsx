@@ -1,36 +1,43 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import {
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem } from
-'@/components/ui/sidebar';
-import { useCurrentUrl } from '@/hooks/use-current-url';
+    SidebarGroup,
+    SidebarGroupLabel,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+} from '@/components/ui/sidebar';
+import { toUrl } from '@/lib/utils';
 
+export function NavMain({ items = [], label = 'Platform' }) {
+    const page = usePage();
 
-export function NavMain({ items = [] }) {
-  const { isCurrentUrl } = useCurrentUrl();
-
-  return (
-    <SidebarGroup className="px-2 py-0">
-            <SidebarGroupLabel>Platform</SidebarGroupLabel>
+    return (
+        <SidebarGroup className="px-2 py-0">
+            <SidebarGroupLabel>{label}</SidebarGroupLabel>
             <SidebarMenu>
-                {items.map((item) =>
-        <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton
-            asChild
-            isActive={isCurrentUrl(item.href)}
-            tooltip={{ children: item.title }}>
-            
-                            <Link href={item.href} prefetch>
-                                {item.icon && <item.icon />}
-                                <span>{item.title}</span>
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-        )}
-            </SidebarMenu>
-        </SidebarGroup>);
+                {items.map((item) => {
+                    const href = toUrl(item.href);
+                    const isActive = page.url.startsWith(href);
 
+                    return (
+                        <SidebarMenuItem key={item.title}>
+                            <SidebarMenuButton
+                                asChild
+                                isActive={isActive}
+                                tooltip={{ children: item.title }}
+                                className="rounded-lg py-5.5"
+                            >
+                                <Link href={item.href} prefetch>
+                                    {item.icon && (
+                                        <item.icon className="text-[#d8a200] dark:text-alpha" />
+                                    )}
+                                    <span>{item.title}</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    );
+                })}
+            </SidebarMenu>
+        </SidebarGroup>
+    );
 }

@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('thumbnail_url')->nullable();
             $table->json('content_types')->nullable();
             $table->string('status')->default('draft')->index();
+            $table->unsignedInteger('estimated_duration_days')->nullable();
             $table->timestamps();
         });
     }

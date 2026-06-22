@@ -1,49 +1,46 @@
 import { Link } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid } from 'lucide-react';
+import { BookOpen, LayoutGrid, Settings } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
-import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem } from
-'@/components/ui/sidebar';
+    Sidebar,
+    SidebarContent,
+    SidebarFooter,
+    SidebarHeader,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+} from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
-
+import { index as coursesIndex } from '@/routes/courses';
 
 const mainNavItems = [
-{
-  title: 'Dashboard',
-  href: dashboard(),
-  icon: LayoutGrid
-},{
-  title: 'Classes',
-  href: "/class",
-  icon: LayoutGrid
-}];
-
-
-const footerNavItems = [
-{
-  title: 'Repository',
-  href: 'https://github.com/laravel/react-starter-kit',
-  icon: FolderGit2
-},
-{
-  title: 'Documentation',
-  href: 'https://laravel.com/docs/starter-kits#react',
-  icon: BookOpen
-}];
-
+    {
+        title: 'Dashboard',
+        href: dashboard(),
+        icon: LayoutGrid,
+    },
+    {
+        title: 'Courses',
+        href: coursesIndex(),
+        icon: BookOpen,
+    },
+    {
+        title: 'Classes',
+        href: '/class',
+        icon: LayoutGrid,
+    },
+    {
+        title: 'Settings',
+        href: '/settings',
+        icon: Settings,
+    },
+];
 
 export function AppSidebar() {
-  return (
-    <Sidebar collapsible="icon" variant="inset">
+    return (
+        <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
@@ -61,9 +58,8 @@ export function AppSidebar() {
             </SidebarContent>
 
             <SidebarFooter>
-                <NavFooter items={footerNavItems} className="mt-auto" />
                 <NavUser />
             </SidebarFooter>
-        </Sidebar>);
-
+        </Sidebar>
+    );
 }

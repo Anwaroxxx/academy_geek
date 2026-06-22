@@ -29,6 +29,7 @@ Before writing or editing code, verify:
 * [ ] **Database/Models**: What tables and relationships already exist?
 * [ ] **Styles**: Are we utilizing the Tailwind/CSS theme variables correctly?
 * [ ] **Authentication/Authorization**: What role/permission restrictions apply?
+* [ ] **App Layout**: Will this page use `<AppLayout>` with breadcrumbs, and does its namespace need to be excluded in `app.jsx`?
 
 ---
 
@@ -72,6 +73,53 @@ The AI **must not**:
 * **Keep Logic Simple**: Write straightforward React state and effect logic. Do not add complex state managers unless approved.
 * **No Duplication**: Do not create similar UI components with minor differences. Parameterize/extend existing ones instead.
 * **Localization**: Use the `TransText` component for rendering dynamic text based on the user's language stored in `localStorage`. The default language must be English (`'en'`).
+
+---
+
+## Page & Layout Rules
+Every new authenticated app page **must** use `AppLayout` from `@/layouts/app-layout`. Reference implementation: `resources/js/pages/courses/index.jsx`.
+
+### AppLayout (required)
+* Wrap the entire page return in `<AppLayout>` — do **not** rely on the global default layout alone for new pages.
+* Pass `breadcrumbs` using Wayfinder route helpers (never hardcoded paths when a route exists).
+* Place `<Head title="..." />` as the first child inside `<AppLayout>`.
+* Page content lives in a single wrapper: `<div className="min-h-screen p-4 md:p-6">`.
+
+```jsx
+import AppLayout from '@/layouts/app-layout';
+import { index as coursesIndex } from '@/routes/courses';
+
+export default function CoursesIndex() {
+    return (
+        <AppLayout
+            breadcrumbs={[
+                { title: 'Courses', href: coursesIndex() },
+            ]}
+        >
+            <Head title="Courses" />
+            <div className="min-h-screen p-4 md:p-6">
+                {/* page content */}
+            </div>
+        </AppLayout>
+    );
+}
+```
+
+### Global layout in `app.jsx` (avoid double wrap)
+* When a page wraps itself in `<AppLayout>`, its namespace **must** be excluded from the global layout in `resources/js/app.jsx` (return `null` for that prefix).
+* Example: `courses/*` pages return `null` in the global layout callback because they handle `AppLayout` themselves.
+* **Do not** set both a JSX `<AppLayout>` wrapper and `Page.layout = { breadcrumbs }` — pick one approach. For new pages, use the JSX wrapper pattern above.
+
+### Page organization
+* Keep `index.jsx` focused on state, handlers, and wiring — not large JSX blocks.
+* Extract UI sections into `partials/` alongside the page (e.g. `CoursesHeader.jsx`, `CoursesCatalog.jsx`).
+* Extract shared constants, helpers, and pure logic into a local helper file (e.g. `partials/courseHelpers.jsx`).
+* Reuse existing shared components from `resources/js/components/` before creating page-specific ones.
+* Use `Banner` from `@/components/ui/banner` for page hero sections when appropriate.
+
+### Layout exceptions (do not wrap in AppLayout)
+* **Public pages** (e.g. `welcome`) — no app shell.
+* **Settings pages** (`settings/*`) — use the nested layout via global config: `[AppLayout, SettingsLayout]` in `app.jsx`; settings pages only set breadcrumb props, not a JSX wrapper.
 
 ---
 
