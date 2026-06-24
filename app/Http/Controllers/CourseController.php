@@ -128,7 +128,7 @@ class CourseController extends Controller
     private function ensureCanManageCourses(Request $request): void
     {
         $manager = $this->courseManager($request);
-        abort_unless($this->userHasAnyRole($manager, ['admin', 'coach']), 403);
+        abort_unless($manager, 403);
     }
 
     private function ensureOwnsCourse(Request $request, Course $course): void

@@ -1,5 +1,5 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Banner from '@/components/ui/banner';
 import DeleteModal from '@/components/DeleteModal';
 import { TransText } from '@/components/TransText';
@@ -26,16 +26,48 @@ import {
     slugify,
 } from './partials/courseHelpers';
 
+const catalogPreferencesKey = 'courses.catalog.preferences';
+const validSortValues = ['recently_active', 'date_posted'];
+const validViewModes = ['banners', 'cards'];
+const validStatusFilters = ['all', 'draft', 'assigned', 'archived'];
+
+const readCatalogPreferences = () => {
+    if (typeof window === 'undefined') {
+        return {};
+    }
+
+    try {
+        return JSON.parse(
+            window.localStorage.getItem(catalogPreferencesKey) ?? '{}',
+        );
+    } catch {
+        return {};
+    }
+};
+
 export default function CoursesIndex({ courses = [] }) {
+    const [storedPreferences] = useState(readCatalogPreferences);
     const [modalOpen, setModalOpen] = useState(false);
     const [editingCourse, setEditingCourse] = useState(null);
     const [courseToReview, setCourseToReview] = useState(null);
     const [courseToDelete, setCourseToDelete] = useState(null);
     const [courseMenu, setCourseMenu] = useState(null);
     const [deleteProcessing, setDeleteProcessing] = useState(false);
-    const [sortValue, setSortValue] = useState(defaultSort);
-    const [viewMode, setViewMode] = useState(defaultView);
-    const [statusFilter, setStatusFilter] = useState('all');
+    const [sortValue, setSortValue] = useState(
+        validSortValues.includes(storedPreferences.sortValue)
+            ? storedPreferences.sortValue
+            : defaultSort,
+    );
+    const [viewMode, setViewMode] = useState(
+        validViewModes.includes(storedPreferences.viewMode)
+            ? storedPreferences.viewMode
+            : defaultView,
+    );
+    const [statusFilter, setStatusFilter] = useState(
+        validStatusFilters.includes(storedPreferences.statusFilter)
+            ? storedPreferences.statusFilter
+            : 'all',
+    );
 
     const form = useForm(emptyCourseForm);
     const isEditing = Boolean(editingCourse);
@@ -46,6 +78,17 @@ export default function CoursesIndex({ courses = [] }) {
         () => filterAndSortCourses(courses, sortValue, statusFilter),
         [courses, sortValue, statusFilter],
     );
+
+    useEffect(() => {
+        window.localStorage.setItem(
+            catalogPreferencesKey,
+            JSON.stringify({
+                sortValue,
+                viewMode,
+                statusFilter,
+            }),
+        );
+    }, [sortValue, viewMode, statusFilter]);
 
     const resetFilters = () => {
         setSortValue(defaultSort);

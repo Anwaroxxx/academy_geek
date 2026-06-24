@@ -4,6 +4,11 @@ import { TransText } from '@/components/TransText';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuTrigger,
@@ -14,7 +19,9 @@ import { useInitials } from '@/hooks/use-initials';
 const geekPoints = '1,240';
 const profileStats = {
     level: 3,
-    progress: 72,
+    xp: 860,
+    xpTarget: 1200,
+    xpProgress: 68,
 };
 const fallbackUser = {
     name: 'Local Coach',
@@ -34,7 +41,7 @@ export function NavbarUser() {
                     <Button
                         type="button"
                         variant="ghost"
-                        className="h-12 gap-2 rounded-full px-2.5"
+                        className="h-12 gap-1 rounded-full px-2"
                         aria-label="Open user menu"
                     >
                         <Avatar className="size-8 overflow-hidden rounded-full">
@@ -46,12 +53,7 @@ export function NavbarUser() {
                                 {getInitials(user.name ?? '')}
                             </AvatarFallback>
                         </Avatar>
-                        <span className="hidden min-w-36 max-w-44 flex-col items-start gap-1 md:flex">
-                            <span className="max-w-full truncate text-sm font-medium leading-none">
-                                {user.name}
-                            </span>
-                        </span>
-                        <ChevronsUpDown className="size-4 text-muted-foreground" />
+                        <ChevronsUpDown className="hidden size-4 text-muted-foreground sm:block" />
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end">
@@ -64,27 +66,35 @@ export function NavbarUser() {
 
 export function NavbarUserStats() {
     return (
-        <div className="hidden min-w-52 max-w-64 flex-col gap-1 rounded-full border border-alpha/45 bg-[#fff7d1] px-4 py-2 shadow-[0_8px_24px_rgba(255,200,1,0.16)] md:flex dark:border-alpha/25 dark:bg-alpha/10 dark:shadow-[0_0_22px_rgba(255,200,1,0.08)]">
-            <div className="flex items-center justify-between gap-3 text-xs leading-none">
-                <span className="font-semibold text-[#5a4600] dark:text-foreground">
-                    <TransText en="Level" fr="Level" ar="Level" /> {profileStats.level}
-                </span>
-                <span className="inline-flex items-center gap-1 font-semibold text-[#8a6a00] dark:text-alpha">
-                    <Coins className="size-3.5" />
-                    {geekPoints}{' '}
-                    <TransText
-                        en="Geek Points"
-                        fr="Geek Points"
-                        ar="Geek Points"
-                    />
-                </span>
-            </div>
-            <span className="h-1.5 w-full overflow-hidden rounded-full bg-[#ead893] dark:bg-muted">
-                <span
-                    className="block h-full rounded-full bg-[#d8a200] dark:bg-alpha"
-                    style={{ width: `${profileStats.progress}%` }}
+        <div className="hidden items-center gap-2 md:flex">
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <div className="flex min-w-28 flex-col gap-1.5 rounded-full border border-alpha/45 bg-[#fff8d6] px-4 py-2 shadow-[0_8px_24px_rgba(255,200,1,0.12)] dark:border-alpha/25 dark:bg-alpha/10 dark:shadow-[0_0_18px_rgba(255,200,1,0.06)]">
+                        <span className="text-xs font-semibold leading-none text-[#5a4600] dark:text-foreground">
+                            <TransText en="Level" fr="Level" ar="Level" /> {profileStats.level}
+                        </span>
+                        <span className="h-1.5 overflow-hidden rounded-full bg-[#ead893] dark:bg-muted">
+                            <span
+                                className="block h-full rounded-full bg-alpha"
+                                style={{ width: `${profileStats.xpProgress}%` }}
+                            />
+                        </span>
+                    </div>
+                </TooltipTrigger>
+                <TooltipContent className="border border-alpha/20 bg-white text-[#5a4600] shadow-[0_8px_24px_rgba(0,0,0,0.10)] dark:border-alpha/20 dark:bg-[#1b1b1b] dark:text-alpha">
+                    {profileStats.xp} XP
+                </TooltipContent>
+            </Tooltip>
+
+            <div className="inline-flex h-9 items-center gap-1.5 rounded-full border border-alpha/35 bg-alpha/10 px-3 text-xs font-semibold text-[#8a6a00] dark:text-alpha">
+                <Coins className="size-3.5" />
+                {geekPoints}{' '}
+                <TransText
+                    en="Geek Points"
+                    fr="Geek Points"
+                    ar="Geek Points"
                 />
-            </span>
+            </div>
         </div>
     );
 }
