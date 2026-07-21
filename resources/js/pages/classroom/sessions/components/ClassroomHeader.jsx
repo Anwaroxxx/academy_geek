@@ -7,21 +7,40 @@ function formatElapsed(seconds) {
     const mins = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
 
-    return [hrs, mins, secs]
-        .map((value) => String(value).padStart(2, '0'))
-        .join(':');
+    if (hrs > 0) {
+        return `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
 
-function useLiveTimer(startedAt, isLive) {
+function useConnectedTimer(startedAt, isJoined) {
     const [elapsed, setElapsed] = useState(0);
+    const [localStartedAt, setLocalStartedAt] = useState(null);
 
     useEffect(() => {
-        if (!isLive || !startedAt) {
+        if (!isJoined || startedAt) {
+            setLocalStartedAt(null);
+            return;
+        }
+
+        setLocalStartedAt((value) => value ?? new Date().toISOString());
+    }, [isJoined, startedAt]);
+
+    useEffect(() => {
+        const effectiveStartedAt = startedAt ?? localStartedAt;
+
+        if (!isJoined || !effectiveStartedAt) {
             setElapsed(0);
             return undefined;
         }
 
-        const start = new Date(startedAt).getTime();
+        const start = new Date(effectiveStartedAt).getTime();
+
+        if (Number.isNaN(start)) {
+            setElapsed(0);
+            return undefined;
+        }
 
         const tick = () => {
             setElapsed(Math.max(0, Math.floor((Date.now() - start) / 1000)));
@@ -31,7 +50,7 @@ function useLiveTimer(startedAt, isLive) {
         const intervalId = window.setInterval(tick, 1000);
 
         return () => window.clearInterval(intervalId);
-    }, [isLive, startedAt]);
+    }, [isJoined, localStartedAt, startedAt]);
 
     return formatElapsed(elapsed);
 }
@@ -39,12 +58,11 @@ function useLiveTimer(startedAt, isLive) {
 export default function ClassroomHeader({
     session,
     currentUser,
-    attendanceStatus,
+    currentParticipant,
+    isJoined = false,
 }) {
-    const isLive = session?.status === 'live';
-    const isJoined = Boolean(attendanceStatus?.is_joined);
-    const timerStartedAt = isJoined ? attendanceStatus?.joined_at : null;
-    const timer = useLiveTimer(timerStartedAt, isLive && isJoined);
+    const timerStartedAt = isJoined ? currentParticipant?.joined_at : null;
+    const timer = useConnectedTimer(timerStartedAt, isJoined);
 
     return (
         <header className="border-b bg-card px-4 py-3 md:px-6">
@@ -60,19 +78,19 @@ export default function ClassroomHeader({
                     </p>
                 </div>
 
-                {/* Live badge / Status */}
+                {/* Connected timer / Status */}
                 <div className="flex items-center justify-start lg:justify-center">
-                    {isLive ? (
-                        <div className="inline-flex items-center gap-2 rounded-full border border-red-200/60 bg-red-50/80 px-3 py-1.5 text-sm font-medium shadow-xs dark:border-red-500/25 dark:bg-red-500/10">
+                    {isJoined ? (
+                        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1.5 text-sm font-medium shadow-xs">
                             <span className="relative flex size-2">
-                                <span className="absolute inline-flex size-full animate-ping rounded-full bg-red-400 opacity-75" />
-                                <span className="relative inline-flex size-2 rounded-full bg-red-500" />
+                                <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                                <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
                             </span>
-                            <span className="font-semibold tracking-wide text-red-600 dark:text-red-400">
-                                LIVE
+                            <span className="font-semibold tracking-wide text-emerald-700 dark:text-emerald-300">
+                                Connected
                             </span>
-                            <span className="font-mono text-xs text-muted-foreground">
-                                {isJoined ? timer : 'Not joined'}
+                            <span className="font-mono text-xs text-emerald-800/80 dark:text-emerald-200/80">
+                                {timer}
                             </span>
                         </div>
                     ) : (

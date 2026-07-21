@@ -9,5 +9,17 @@ Route::middleware(['auth',])->group(function () {
     Route::get("/classes/{id}", [ClassController::class, "show"]);
     Route::get('/classroom/sessions/{id}', [ClassController::class, 'classroomSession'])
         ->name('classroom.sessions.show');
+    Route::get('/classroom/sessions/{id}/status', [ClassController::class, 'classroomSessionStatus'])
+        ->name('classroom.sessions.status');
+    Route::post('/classroom/sessions/{id}/start', [ClassController::class, 'startClassroomSession'])
+        ->name('classroom.sessions.start');
+    Route::post('/classroom/sessions/{id}/stop', [ClassController::class, 'stopClassroomSession'])
+        ->name('classroom.sessions.stop');
+    Route::post('/classroom/sessions/{id}/participants/join', [ClassController::class, 'joinClassroomParticipant'])
+        ->name('classroom.sessions.participants.join');
+    Route::post('/classroom/sessions/{id}/participants/leave', [ClassController::class, 'leaveClassroomParticipant'])
+        ->name('classroom.sessions.participants.leave');
+    Route::post('/classroom/sessions/{id}/participants/{participant}/screen-share', [ClassController::class, 'updateClassroomParticipantScreenShare'])
+        ->name('classroom.sessions.participants.screen-share');
 });
 Route::get("/getclass", [GetClassesDataController::class, "getClasses"])->middleware("suAdmin");
