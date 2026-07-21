@@ -116,7 +116,7 @@ class AuthController extends Controller
         }
 
         $this->assignRoles($token["roles"], $user);
-        // $this->getAvatars->get($token["avatar"]);
+        $this->getAvatars->get($token["avatar"] ?? null);
 
         Auth::login($user);
         return redirect()->intended("dashboard");
