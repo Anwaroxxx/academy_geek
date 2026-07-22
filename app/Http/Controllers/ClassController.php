@@ -9,6 +9,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Models\User_role;
 use App\Models\WakaTime;
+use App\Services\ClassroomRecordingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -299,7 +300,7 @@ class ClassController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show($id)
+    public function show($id, ClassroomRecordingService $recordingService)
     {
 
         $class = Classes::where("id", $id)->get()->first();
@@ -337,6 +338,10 @@ class ClassController extends Controller
                 $data["students"][$key]["wakaKey"] = $this->getWakatimeKey($student);
             }
         }
+        $data["recordings"] = $recordingService->forClass($class, $user);
+        $data["permissions"] = [
+            "can_upload_recordings" => $recordingService->canUploadForClass($class, $user),
+        ];
 
         return Inertia::render("classes/[id]", ["data" => $data]);
     }
@@ -460,11 +465,20 @@ class ClassController extends Controller
                 'is_online' => true,
                 'left_at' => null,
                 'last_seen_at' => now(),
-                'joined_at' => $participant->joined_at ?? now(),
+                'joined_at' => now(),
             ])->save();
         }
 
-        Cache::put($this->classroomLiveCacheKey($class), true, now()->addHours(2));
+        $liveStatus = Cache::get($this->classroomLiveCacheKey($class));
+        $startedAt = is_array($liveStatus) && ! empty($liveStatus['started_at'])
+            ? $liveStatus['started_at']
+            : now()->toIso8601String();
+
+        Cache::put($this->classroomLiveCacheKey($class), [
+            'is_live' => true,
+            'started_at' => $startedAt,
+            'started_by' => $user->id,
+        ], now()->addHours(2));
 
         return response()->json([
             'room_is_live' => true,
@@ -557,7 +571,7 @@ class ClassController extends Controller
             'is_online' => true,
             'left_at' => null,
             'last_seen_at' => now(),
-            'joined_at' => $participant->joined_at ?? now(),
+            'joined_at' => now(),
         ])->save();
 
         return response()->json([

@@ -200,6 +200,7 @@ export default function useClassroomActions({
                     setStreamEndedByStaff(true);
                     classroomData().applyParticipantResponse?.(payload);
                     leaveLocally();
+
                     return;
                 }
 

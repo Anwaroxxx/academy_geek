@@ -9,6 +9,7 @@ import {
     X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useRecordingProgress } from '../hooks/useRecordingProgress';
 import {
     formatDate,
     formatDuration,
@@ -22,11 +23,17 @@ function FeaturedMedia({
     playRequest,
     onClose,
     onPlaybackEnded,
+    onProgressSaved,
     onReplay,
     onWatchNext,
 }) {
     const [hasPlayerError, setHasPlayerError] = useState(false);
     const videoRef = useRef(null);
+    useRecordingProgress({
+        onProgressSaved,
+        recording,
+        videoRef,
+    });
 
     useEffect(() => {
         setHasPlayerError(false);
@@ -155,6 +162,7 @@ const FeaturedRecordingSection = forwardRef(function FeaturedRecordingSection(
         playRequest,
         onClose,
         onPlaybackEnded,
+        onProgressSaved,
         onReplay,
         onWatchNext,
     },
@@ -186,6 +194,7 @@ const FeaturedRecordingSection = forwardRef(function FeaturedRecordingSection(
                     playRequest={playRequest}
                     onClose={onClose}
                     onPlaybackEnded={onPlaybackEnded}
+                    onProgressSaved={onProgressSaved}
                     onReplay={onReplay}
                     onWatchNext={onWatchNext}
                 />

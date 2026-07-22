@@ -30,6 +30,9 @@ export default function ClassroomSession({
     const canStartRoomFromAccess = Boolean(
         jitsiAccess?.can_start_room || jitsiAccess?.is_host,
     );
+    const initialRoomIsLive = Boolean(
+        jitsiAccess?.room_is_live || jitsiAccess?.host_is_online,
+    );
 
     const {
         handleJoin,
@@ -46,10 +49,10 @@ export default function ClassroomSession({
         classId: data.id,
         getClassroomData: () => classroomDataRef.current,
         getJitsiSync: () => jitsiSyncRef.current,
-        initialIsJoined: Boolean(mappedClassroom.currentParticipant?.is_online),
-        initialRoomIsLive: Boolean(
-            jitsiAccess?.room_is_live || jitsiAccess?.host_is_online,
+        initialIsJoined: Boolean(
+            mappedClassroom.currentParticipant?.is_online && initialRoomIsLive,
         ),
+        initialRoomIsLive,
         onLocalLeave: () => {
             setIsFocusMode(false);
             setActiveFocusOverlay(null);

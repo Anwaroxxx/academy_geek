@@ -1,21 +1,43 @@
-import { Clock, Play, Sparkles, Video } from 'lucide-react';
+import { CheckCircle, Clock, Play, Sparkles, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import RecordingPagination from './RecordingPagination';
 import {
     formatDate,
     formatDuration,
+    formatWatchedDuration,
     recordingTitle,
+    watchedSeconds,
 } from '../lib/recording-formatters';
 
 function RecordingRow({ recording, isSelected, onSelect }) {
     const recordedDate = formatDate(recording.recorded_at);
     const duration = formatDuration(recording.duration_seconds);
     const title = recordingTitle(recording);
-
+    const watched = watchedSeconds(recording);
+    const durationSeconds = Number(recording.duration_seconds) || 0;
+    const isCompleted = Boolean(recording.completed_at)
+        || (durationSeconds > 0 && watched >= Math.ceil(durationSeconds * 0.9));
+    const hasWatchedProgress = isCompleted || watched > 0;
+    const progress = isCompleted
+        ? 100
+        : durationSeconds > 0
+            ? Math.min(100, (watched / durationSeconds) * 100)
+            : 0;
+    const roundedProgress = isCompleted
+        ? 100
+        : watched > 0 && progress > 0
+            ? Math.max(1, Math.round(progress))
+            : Math.round(progress);
+    const progressText = isCompleted
+        ? 'Completed'
+        : `${formatWatchedDuration(watched)}${
+            durationSeconds > 0 ? ` - ${roundedProgress}%` : ''
+        }`;
     return (
         <article
             className={cn(
-                'group grid overflow-hidden rounded-2xl border border-border/70 bg-card text-card-foreground shadow-lg shadow-black/10 transition hover:border-amber-300/70 md:grid-cols-[116px_minmax(0,1fr)] lg:grid-cols-[132px_minmax(0,1fr)_180px]',
+                'group grid overflow-hidden rounded-2xl border border-border/70 bg-card text-card-foreground shadow-md shadow-black/5 transition hover:border-amber-300/70 md:grid-cols-[104px_minmax(0,1fr)_auto]',
                 isSelected &&
                     'border-amber-300 bg-muted ring-2 ring-amber-300/40',
             )}
@@ -23,32 +45,27 @@ function RecordingRow({ recording, isSelected, onSelect }) {
             aria-labelledby={`recording-${recording.id}-title`}
         >
             <div
-                className="relative flex min-h-28 items-center justify-center overflow-hidden bg-muted text-amber-600 md:min-h-0"
+                className="relative flex min-h-24 items-center justify-center overflow-hidden bg-muted text-amber-600 md:min-h-0"
                 aria-hidden="true"
             >
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(251,191,36,0.28),transparent_34%),linear-gradient(135deg,rgba(245,158,11,0.18),rgba(10,10,10,0.96))]" />
-                <div className="relative flex size-12 items-center justify-center rounded-2xl border border-amber-300/20 bg-amber-300/15 shadow-lg">
-                    <Video className="size-6" />
+                <div className="relative flex size-10 items-center justify-center rounded-xl border border-amber-300/20 bg-amber-300/15 shadow-lg">
+                    <Video className="size-5" />
                 </div>
             </div>
 
-            <div className="min-w-0 space-y-3 p-4 md:p-5">
+            <div className="min-w-0 space-y-2.5 p-4 md:px-4 md:py-3.5">
                 <div className="flex flex-wrap items-center gap-2">
                     {isSelected && (
                         <span className="rounded-full border border-amber-300/50 bg-amber-300/10 px-2.5 py-1 text-xs font-semibold text-amber-200">
                             Featured
                         </span>
                     )}
-                    {recording.status === 'ready' && (
-                        <span className="rounded-full border border-emerald-300/30 bg-emerald-400/15 px-2.5 py-1 text-xs font-semibold text-emerald-200">
-                            Ready
-                        </span>
-                    )}
                 </div>
 
                 <h3
                     id={`recording-${recording.id}-title`}
-                    className="line-clamp-2 text-lg font-semibold tracking-tight"
+                    className="line-clamp-1 text-base font-semibold tracking-tight md:text-lg"
                 >
                     {title}
                 </h3>
@@ -59,7 +76,7 @@ function RecordingRow({ recording, isSelected, onSelect }) {
                     </p>
                 )}
 
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-neutral-400">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-neutral-400">
                     {recordedDate && <span>{recordedDate}</span>}
                     {duration && (
                         <span className="inline-flex items-center gap-1">
@@ -69,12 +86,36 @@ function RecordingRow({ recording, isSelected, onSelect }) {
                     )}
                 </div>
 
+                {hasWatchedProgress && (
+                    <div className="w-full max-w-[360px] space-y-1.5">
+                        <div
+                            className="h-[5px] overflow-hidden rounded-full bg-neutral-200 shadow-inner dark:bg-neutral-800"
+                            aria-label={`${progressText} progress`}
+                        >
+                            <div
+                                className="h-full rounded-full bg-amber-400 transition-[width]"
+                                style={{
+                                    minWidth: progress > 0 ? '6px' : undefined,
+                                    width: `${progress}%`,
+                                }}
+                            />
+                        </div>
+                        <p className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-500 dark:text-amber-200/85">
+                            {isCompleted && (
+                                <CheckCircle className="size-3.5" aria-hidden="true" />
+                            )}
+                            {progressText}
+                        </p>
+                    </div>
+                )}
             </div>
 
-            <div className="flex items-center justify-between gap-3 border-t border-white/10 px-4 py-4 md:col-span-2 lg:col-span-1 lg:flex-col lg:items-end lg:justify-center lg:border-t-0 lg:border-l">
-                <span className="text-sm text-neutral-400">
-                    {isSelected ? 'Selected recording' : 'Ready to watch'}
-                </span>
+            <div className="flex items-center justify-end gap-3 border-t border-white/10 px-4 py-3 md:border-t-0 md:border-l">
+                {isSelected && (
+                    <span className="hidden text-sm text-neutral-400 lg:inline">
+                        Selected
+                    </span>
+                )}
                 <Button
                     type="button"
                     onClick={() => onSelect(recording)}
@@ -90,11 +131,13 @@ function RecordingRow({ recording, isSelected, onSelect }) {
 }
 
 export default function RecentRecordingsSection({
-    recordings,
+    links,
     meta,
+    onNavigate,
+    onSelectRecording,
+    recordings,
     search,
     selectedRecordingId,
-    onSelectRecording,
 }) {
     const total = Number.isFinite(meta?.total) ? meta.total : recordings.length;
     const from = meta?.from;
@@ -153,19 +196,27 @@ export default function RecentRecordingsSection({
                     No recordings match your search.
                 </div>
             ) : (
-                <ul className="space-y-3">
-                    {recordings.map((recording) => (
-                        <li key={recording.id}>
-                            <RecordingRow
-                                recording={recording}
-                                isSelected={
-                                    selectedRecordingId === recording.id
-                                }
-                                onSelect={onSelectRecording}
-                            />
-                        </li>
-                    ))}
-                </ul>
+                <div className="space-y-5">
+                    <ul className="space-y-3">
+                        {recordings.map((recording) => (
+                            <li key={recording.id}>
+                                <RecordingRow
+                                    recording={recording}
+                                    isSelected={
+                                        selectedRecordingId === recording.id
+                                    }
+                                    onSelect={onSelectRecording}
+                                />
+                            </li>
+                        ))}
+                    </ul>
+
+                    <RecordingPagination
+                        meta={meta}
+                        links={links}
+                        onNavigate={onNavigate}
+                    />
+                </div>
             )}
         </section>
     );

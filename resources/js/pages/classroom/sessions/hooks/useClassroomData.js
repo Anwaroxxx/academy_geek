@@ -25,12 +25,9 @@ export default function useClassroomData({
     mappedClassroom,
     roomIsLive = false,
 }) {
-    const [currentParticipant, setCurrentParticipant] = useState(
-        mappedClassroom.currentParticipant,
-    );
-    const [participants, setParticipants] = useState(
-        mappedClassroom.participants,
-    );
+    const [currentParticipant, setCurrentParticipant] = useState(null);
+
+    const [participants, setParticipants] = useState([]);
     const [selectedParticipant, setSelectedParticipant] = useState(null);
 
     const canStartRoom = Boolean(
@@ -63,9 +60,27 @@ export default function useClassroomData({
         [canShareScreen, jitsiAccess, roomIsLive],
     );
 
+    // useEffect(() => {
+    //     setCurrentParticipant(mappedClassroom.currentParticipant);
+    //     setParticipants(mappedClassroom.participants);
+    // }, [mappedClassroom.currentParticipant, mappedClassroom.participants]);
+
     useEffect(() => {
-        setCurrentParticipant(mappedClassroom.currentParticipant);
-        setParticipants(mappedClassroom.participants);
+        let isCancelled = false;
+
+        queueMicrotask(() => {
+            if (isCancelled) {
+return;
+}
+
+            setCurrentParticipant(mappedClassroom.currentParticipant ?? null);
+
+            setParticipants(mappedClassroom.participants ?? []);
+        });
+
+        return () => {
+            isCancelled = true;
+        };
     }, [mappedClassroom.currentParticipant, mappedClassroom.participants]);
 
     const applyCurrentParticipantUpdate = useCallback(

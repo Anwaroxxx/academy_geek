@@ -3,6 +3,7 @@ import { useState } from "react";
 import { router } from "@inertiajs/react";
 import StudentTable from "../components/StudentTable";
 import StudentProfile from "../../Profile/[id]";
+import RecordedStreamsTab from "./recorded-streams/RecordedStreamsTab";
 import {
   Tabs,
   TabsContent,
@@ -13,11 +14,12 @@ import {
 
 
 
-export default function Tab({ students = [], coach,  selectedStudent,
-  setSelectedStudent, }) {
+export default function Tab({ classId, students = [], coach,  selectedStudent,
+  setSelectedStudent, recordings = [], canUploadRecordings = false, }) {
   // const [selectedStudent, setSelectedStudent] = useState(null);
 
   const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState("students");
   const filteredStudents = students.filter((student) =>
     student.name.toLowerCase().includes(search.toLowerCase()) ||
     student.email.toLowerCase().includes(search.toLowerCase())
@@ -34,7 +36,7 @@ export default function Tab({ students = [], coach,  selectedStudent,
           onBack={() => setSelectedStudent(null)}
         />
       ) : (
-        <Tabs defaultValue="students">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="students">Students</TabsTrigger>
             <TabsTrigger value="streams">Recorded Streams</TabsTrigger>
@@ -51,7 +53,11 @@ export default function Tab({ students = [], coach,  selectedStudent,
           </TabsContent>
 
           <TabsContent value="streams">
-            <p>Coming soon</p>
+            <RecordedStreamsTab
+              canUpload={canUploadRecordings}
+              classId={classId}
+              recordings={recordings}
+            />
           </TabsContent>
 
           <TabsContent value="Programme">

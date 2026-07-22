@@ -23,8 +23,11 @@ export default function ClasseDetails({ courses = [] , data }) {
             {/* live stram banner  */}
   {!selectedStudent && <LiveStreamBanner classId={data.id} />}
 <Tabs
+    classId={data.id}
     students={data.students}
     coach={data.coach}
+    recordings={data.recordings}
+    canUploadRecordings={data.permissions?.can_upload_recordings === true}
     selectedStudent={selectedStudent}
     setSelectedStudent={setSelectedStudent}
 />

@@ -1,7 +1,7 @@
 import { usePage } from '@inertiajs/react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import FeaturedRecordingSection from './components/FeaturedRecordingSection';
-import RecordingPagination from './components/RecordingPagination';
+import LiveStreamBanner from './components/LiveStreamBanner';
 import RecentRecordingsSection from './components/RecentRecordingsSection';
 import RecordingsLibraryHeader from './components/RecordingsLibraryHeader';
 import RecordingsSidebarList from './components/RecordingsSidebarList';
@@ -13,6 +13,7 @@ const emptyRecordings = {
         total: 0,
         current_page: 1,
         last_page: 1,
+        per_page: 4,
         from: 0,
         to: 0,
     },
@@ -27,7 +28,8 @@ export default function RecordingsIndex() {
     const pageProps = usePage().props ?? {};
     const recordings = pageProps.recordings ?? emptyRecordings;
     const filters = pageProps.filters ?? emptyFilters;
-    const recordingItems = Array.isArray(recordings.data)
+    const liveStream = pageProps.liveStream ?? null;
+    const baseRecordingItems = Array.isArray(recordings.data)
         ? recordings.data
         : [];
     const recordingMeta = {
@@ -38,14 +40,25 @@ export default function RecordingsIndex() {
         ? recordings.links
         : [];
     const search = typeof filters?.search === 'string' ? filters.search : '';
-    const recordingCount = Number(recordingMeta.total ?? recordingItems.length);
+    const recordingCount = Number(
+        recordingMeta.total ?? baseRecordingItems.length,
+    );
     const [featuredRecording, setFeaturedRecording] = useState(null);
+    const [progressOverrides, setProgressOverrides] = useState({});
     const [isPlayerOpen, setIsPlayerOpen] = useState(false);
     const [isPlaybackCompleted, setIsPlaybackCompleted] = useState(false);
     const [playRequest, setPlayRequest] = useState(0);
     const playerRef = useRef(null);
     const lastWatchButtonRef = useRef(null);
     const pageIdentity = `${recordingMeta.current_page ?? 1}:${search}`;
+    const recordingItems = useMemo(
+        () =>
+            baseRecordingItems.map((recording) => ({
+                ...recording,
+                ...(progressOverrides[recording.id] ?? {}),
+            })),
+        [baseRecordingItems, progressOverrides],
+    );
 
     useEffect(() => {
         if (!isPlayerOpen) {
@@ -77,6 +90,7 @@ export default function RecordingsIndex() {
 
     useEffect(() => {
         setFeaturedRecording(null);
+        setProgressOverrides({});
         setIsPlayerOpen(false);
         setIsPlaybackCompleted(false);
     }, [pageIdentity]);
@@ -123,6 +137,37 @@ export default function RecordingsIndex() {
         setIsPlaybackCompleted(true);
     };
 
+    const handleProgressSaved = useCallback((progress) => {
+        setProgressOverrides((current) => {
+            const previousWatched = Number(current[progress.id]?.watched_seconds) || 0;
+            const nextWatched = Number(progress.watched_seconds) || 0;
+
+            return {
+                ...current,
+                [progress.id]: {
+                    completed_at:
+                        progress.completed_at ?? current[progress.id]?.completed_at ?? null,
+                    watched_seconds: Math.max(previousWatched, nextWatched),
+                },
+            };
+        });
+
+        setFeaturedRecording((current) => {
+            if (!current || current.id !== progress.id) {
+                return current;
+            }
+
+            const previousWatched = Number(current.watched_seconds) || 0;
+            const nextWatched = Number(progress.watched_seconds) || 0;
+
+            return {
+                ...current,
+                completed_at: progress.completed_at ?? current.completed_at ?? null,
+                watched_seconds: Math.max(previousWatched, nextWatched),
+            };
+        });
+    }, []);
+
     const handleReplay = () => {
         setIsPlaybackCompleted(false);
     };
@@ -148,17 +193,21 @@ export default function RecordingsIndex() {
                     YouTube's watch page (search/filters live on the
                     browse page, not the watch page). */}
                 {!isWatching && (
-                    <div className="rounded-3xl border border-black/5 bg-white/80 p-5 shadow-xl shadow-black/5 dark:border-white/10 dark:bg-neutral-950/72 dark:shadow-black/20 md:p-6">
-                        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-end">
-                        <RecordingsLibraryHeader
-                            recordingCount={recordingCount}
-                        />
-                        <RecordingsToolbar
-                            disabled={recordingCount === 0}
-                            query={search}
-                        />
+                    <>
+                        <div className="rounded-3xl border border-black/5 bg-white/80 p-5 shadow-xl shadow-black/5 dark:border-white/10 dark:bg-neutral-950/72 dark:shadow-black/20 md:p-6">
+                            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-end">
+                                <RecordingsLibraryHeader
+                                    recordingCount={recordingCount}
+                                />
+                                <RecordingsToolbar
+                                    disabled={recordingCount === 0}
+                                    query={search}
+                                />
+                            </div>
                         </div>
-                    </div>
+
+                        <LiveStreamBanner liveStream={liveStream} />
+                    </>
                 )}
 
                 {isWatching ? (
@@ -175,6 +224,7 @@ export default function RecordingsIndex() {
                             playRequest={playRequest}
                             onClose={handleClosePlayer}
                             onPlaybackEnded={handlePlaybackEnded}
+                            onProgressSaved={handleProgressSaved}
                             onReplay={handleReplay}
                             onWatchNext={handleWatchNext}
                         />
@@ -187,23 +237,17 @@ export default function RecordingsIndex() {
                     </div>
                 ) : (
                     <RecentRecordingsSection
+                        links={recordingLinks}
                         recordings={recordingItems}
                         meta={recordingMeta}
-                        search={search}
-                        selectedRecordingId={featuredRecording?.id}
-                        onSelectRecording={handleSelectRecording}
-                    />
-                )}
-
-                {!isWatching && (
-                    <RecordingPagination
-                        meta={recordingMeta}
-                        links={recordingLinks}
                         onNavigate={() => {
                             setFeaturedRecording(null);
                             setIsPlayerOpen(false);
                             setIsPlaybackCompleted(false);
                         }}
+                        search={search}
+                        selectedRecordingId={featuredRecording?.id}
+                        onSelectRecording={handleSelectRecording}
                     />
                 )}
             </div>
