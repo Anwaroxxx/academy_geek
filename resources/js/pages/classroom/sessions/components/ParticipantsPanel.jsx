@@ -36,9 +36,207 @@ export default function ParticipantsPanel({
         );
     }, [participants, search]);
 
+    const onlineParticipants = filteredParticipants.filter(
+        (participant) => participant.is_online,
+    );
+    const offlineParticipants = filteredParticipants.filter(
+        (participant) => !participant.is_online,
+    );
+    const groupedParticipants = [
+        ...onlineParticipants,
+        ...offlineParticipants,
+    ];
     const visibleParticipants = showAll
-        ? filteredParticipants
-        : filteredParticipants.slice(0, 8);
+        ? groupedParticipants
+        : groupedParticipants.slice(0, 8);
+    const visibleOnlineParticipants = visibleParticipants.filter(
+        (participant) => participant.is_online,
+    );
+    const visibleOfflineParticipants = visibleParticipants.filter(
+        (participant) => !participant.is_online,
+    );
+
+    const participantGroups = [
+        {
+            label: 'Online',
+            count: onlineParticipants.length,
+            participants: visibleOnlineParticipants,
+        },
+        {
+            label: 'Offline',
+            count: offlineParticipants.length,
+            participants: visibleOfflineParticipants,
+        },
+    ].filter((group) => group.participants.length > 0);
+
+    const renderParticipantRow = (participant) => {
+        const user = participant.user;
+        const isHost = participant.role === 'host';
+        const isCurrentUser = user?.id === currentUser?.id;
+        // chat filter
+        const isSelected = selectedParticipant?.id === participant.id;
+        const canModerateParticipant =
+            canModerate && !isCurrentUser && !isHost;
+        const onlineStatus = participant.is_online
+            ? 'Online'
+            : 'Offline';
+
+        return (
+            <div
+                key={participant.id}
+                // chat filter
+                onClick={() => onSelectParticipant?.(participant)}
+
+                className={cn(
+                        'flex cursor-pointer items-center gap-3 rounded-xl border bg-background px-3 py-2.5 transition',
+                        isSelected &&
+                            'border-amber-400 bg-amber-50 dark:bg-amber-500/10',
+                        !isSelected &&
+                            'hover:border-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10',
+                    )}
+            >
+                <ParticipantAvatar
+                    user={user}
+                    isHost={isHost}
+                    size="medium"
+                    className="shrink-0"
+                />
+
+                <div className="min-w-0 flex-1">
+
+                        {/* long names    */}
+                    <div className="flex min-w-0 items-center gap-2">
+                    <p
+                        className="max-w-[120px] truncate text-sm font-medium"
+                        title={user?.name ?? 'Unknown participant'}
+                    >
+                        {user?.name ?? 'Unknown participant'}
+                    </p>
+                        {isCurrentUser && (
+                            <span className="text-xs text-muted-foreground">
+                                (You)
+                            </span>
+                        )}
+                    </div>
+                    <p className="text-xs capitalize text-muted-foreground">
+                        {onlineStatus}
+                    </p>
+                </div>
+                                {/* badge of the host  */}
+                <div className="flex items-center gap-2">
+                    {isHost && (
+                            <Badge
+                                className="
+                                    border border-amber-300
+                                        bg-amber-50
+                                        text-amber-700
+                                        px-2.5 py-1
+                                        dark:border-amber-500/30
+                                        dark:bg-amber-500/15
+                                        dark:text-amber-300
+                                "
+                            >
+                                <Crown className="mr-1 size-3" />
+                                Host
+                            </Badge>
+                    )}
+
+                    {participant.is_muted ? (
+                        <MicOff
+                            className="size-4 text-muted-foreground"
+                            aria-label="Muted"
+                        />
+                    ) : (
+                        <Mic
+                            className="size-4 text-emerald-500"
+                            aria-label="Unmuted"
+                        />
+                    )}
+
+                    <span
+                        className={cn(
+                            'size-2 rounded-full',
+                            participant.is_online
+                                ? 'bg-emerald-500'
+                                : 'bg-muted-foreground/40',
+                        )}
+                        aria-label={onlineStatus}
+                    />
+
+                    {canModerateParticipant && (
+                        <div className="ml-1 flex items-center gap-1">
+                            {!participant.is_muted && (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    disabled={isModerating}
+                                    title="Mute participant"
+                                    aria-label="Mute participant"
+                                    onClick={() =>
+                                        onModerateParticipant?.(
+                                            participant,
+                                            'mute',
+                                        )
+                                    }
+                                >
+                                    <MicOff className="size-4" />
+                                </Button>
+                            )}
+
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                disabled={isModerating}
+                                title={
+                                    participant.can_share_screen
+                                        ? 'Revoke screen sharing'
+                                        : 'Allow screen sharing'
+                                }
+                                aria-label={
+                                    participant.can_share_screen
+                                        ? 'Revoke screen sharing'
+                                        : 'Allow screen sharing'
+                                }
+                                onClick={() =>
+                                    onModerateParticipant?.(
+                                        participant,
+                                        'screenShare',
+                                    )
+                                }
+                            >
+                                <MonitorUp
+                                    className={cn(
+                                        'size-4',
+                                        participant.can_share_screen &&
+                                            'text-amber-600',
+                                    )}
+                                />
+                            </Button>
+
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                disabled={isModerating}
+                                title="Remove participant"
+                                aria-label="Remove participant"
+                                onClick={() =>
+                                    onModerateParticipant?.(
+                                        participant,
+                                        'remove',
+                                    )
+                                }
+                            >
+                                <UserX className="size-4 text-destructive" />
+                            </Button>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    };
 
     // ROOT FIX: previously this was
     //   'flex min-h-[420px] bg-card flex-1 flex-col overflow-hidden
@@ -94,174 +292,14 @@ export default function ParticipantsPanel({
                     </p>
                 )}
 
-                {visibleParticipants.map((participant) => {
-                    const user = participant.user;
-                    const isHost = participant.role === 'host';
-                    const isCurrentUser = user?.id === currentUser?.id;
-                    // chat filter 
-                    const isSelected = selectedParticipant?.id === participant.id;
-                    const canModerateParticipant =
-                        canModerate && !isCurrentUser && !isHost;
-                    const onlineStatus = participant.is_online
-                        ? 'Online'
-                        : 'Offline';
-
-                    return (
-                        <div
-                            key={participant.id}
-                            // chat filter
-                            onClick={() => onSelectParticipant?.(participant)}
-                    
-                            className={cn(
-                                    'flex cursor-pointer items-center gap-3 rounded-xl border bg-background px-3 py-2.5 transition',
-                                    isSelected &&
-                                        'border-amber-400 bg-amber-50 dark:bg-amber-500/10',
-                                    !isSelected &&
-                                        'hover:border-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10',
-                                )}
-                        >
-                            <ParticipantAvatar
-                                user={user}
-                                isHost={isHost}
-                                size="medium"
-                                className="shrink-0"
-                            />
-
-                            <div className="min-w-0 flex-1">
-                                     
-                                     {/* long names    */}
-                                <div className="flex min-w-0 items-center gap-2">
-                                <p
-                                    className="max-w-[120px] truncate text-sm font-medium"
-                                    title={user?.name ?? 'Unknown participant'}
-                                >
-                                    {user?.name ?? 'Unknown participant'}
-                                </p>
-                                    {isCurrentUser && (
-                                        <span className="text-xs text-muted-foreground">
-                                            (You)
-                                        </span>
-                                    )}
-                                </div>
-                                <p className="text-xs capitalize text-muted-foreground">
-                                    {onlineStatus}
-                                </p>
-                            </div>
-                                            {/* badge of the host  */}
-                            <div className="flex items-center gap-2">
-                                {isHost && (
-                                        <Badge
-                                            className="
-                                                border border-amber-300
-                                                    bg-amber-50
-                                                    text-amber-700
-                                                    px-2.5 py-1
-                                                    dark:border-amber-500/30
-                                                    dark:bg-amber-500/15
-                                                    dark:text-amber-300
-                                            "
-                                        >
-                                            <Crown className="mr-1 size-3" />
-                                            Host
-                                        </Badge>
-                                )}
-
-                                {participant.is_muted ? (
-                                    <MicOff
-                                        className="size-4 text-muted-foreground"
-                                        aria-label="Muted"
-                                    />
-                                ) : (
-                                    <Mic
-                                        className="size-4 text-emerald-500"
-                                        aria-label="Unmuted"
-                                    />
-                                )}
-
-                                <span
-                                    className={cn(
-                                        'size-2 rounded-full',
-                                        participant.is_online
-                                            ? 'bg-emerald-500'
-                                            : 'bg-muted-foreground/40',
-                                    )}
-                                    aria-label={onlineStatus}
-                                />
-
-                                {canModerateParticipant && (
-                                    <div className="ml-1 flex items-center gap-1">
-                                        {!participant.is_muted && (
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                disabled={isModerating}
-                                                title="Mute participant"
-                                                aria-label="Mute participant"
-                                                onClick={() =>
-                                                    onModerateParticipant?.(
-                                                        participant,
-                                                        'mute',
-                                                    )
-                                                }
-                                            >
-                                                <MicOff className="size-4" />
-                                            </Button>
-                                        )}
-
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            disabled={isModerating}
-                                            title={
-                                                participant.can_share_screen
-                                                    ? 'Revoke screen sharing'
-                                                    : 'Allow screen sharing'
-                                            }
-                                            aria-label={
-                                                participant.can_share_screen
-                                                    ? 'Revoke screen sharing'
-                                                    : 'Allow screen sharing'
-                                            }
-                                            onClick={() =>
-                                                onModerateParticipant?.(
-                                                    participant,
-                                                    'screenShare',
-                                                )
-                                            }
-                                        >
-                                            <MonitorUp
-                                                className={cn(
-                                                    'size-4',
-                                                    participant.can_share_screen &&
-                                                        'text-amber-600',
-                                                )}
-                                            />
-                                        </Button>
-
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            disabled={isModerating}
-                                            title="Remove participant"
-                                            aria-label="Remove participant"
-                                            onClick={() =>
-                                                onModerateParticipant?.(
-                                                    participant,
-                                                    'remove',
-                                                )
-                                            }
-                                        >
-                                            <UserX className="size-4 text-destructive" />
-                                        </Button>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    );
-                })}
+                {participantGroups.map((group) => (
+                    <div key={group.label} className="space-y-2">
+                        <p className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            {group.label} &mdash; {group.count}
+                        </p>
+                        {group.participants.map(renderParticipantRow)}
+                    </div>
+                ))}
             </div>
 
             {filteredParticipants.length > 8 && (
