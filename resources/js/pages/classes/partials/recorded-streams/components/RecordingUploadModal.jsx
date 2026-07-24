@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { durationInputValue } from "../lib/recordingFormatters";
+import { courseOptions, durationInputValue } from "../lib/recordingFormatters";
 
 export function RecordingUploadModal({
   error,
@@ -86,18 +86,48 @@ export function RecordingUploadModal({
           )}
 
           <div className="grid gap-2">
-            <Label htmlFor="recording-title">Title</Label>
+            <Label htmlFor="recording-title">Concept</Label>
             <Input
               id="recording-title"
               value={form.title}
               onChange={(event) => onUpdateForm("title", event.target.value)}
               aria-invalid={Boolean(fieldErrors.title)}
               disabled={isUploading}
+              placeholder="JavaScript DOM Manipulation Replay"
               required
             />
             {fieldErrors.title && (
               <p className="text-xs font-medium text-red-600 dark:text-red-300">
                 {fieldErrors.title}
+              </p>
+            )}
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="recording-course">Course</Label>
+            <Select
+              value={form.course}
+              onValueChange={(value) => onUpdateForm("course", value)}
+              disabled={isUploading}
+            >
+              <SelectTrigger
+                id="recording-course"
+                className="w-full"
+                aria-invalid={Boolean(fieldErrors["metadata.course"])}
+              >
+                <SelectValue placeholder="Select a course" />
+              </SelectTrigger>
+              <SelectContent>
+                {courseOptions.map((course) => (
+                  <SelectItem key={course} value={course}>
+                    {course}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {fieldErrors["metadata.course"] && (
+              <p className="text-xs font-medium text-red-600 dark:text-red-300">
+                {fieldErrors["metadata.course"]}
               </p>
             )}
           </div>

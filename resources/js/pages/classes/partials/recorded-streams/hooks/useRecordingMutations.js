@@ -68,11 +68,12 @@ export function useRecordingMutations({ canManageRecordings, canUpload, classId 
     const title = form.title.trim();
     const description = form.description.trim();
     const duration = form.duration.trim();
+    const course = form.course.trim();
 
     if (!title || !videoFile) {
-      setUploadError("Title and MP4 video are required.");
+      setUploadError("Concept and MP4 video are required.");
       setUploadFieldErrors({
-        title: !title ? "Title is required." : null,
+        title: !title ? "Concept is required." : null,
         video: !videoFile ? "MP4 video is required." : null,
       });
 
@@ -112,6 +113,10 @@ export function useRecordingMutations({ canManageRecordings, canUpload, classId 
 
     if (duration) {
       formData.append("duration", duration);
+    }
+
+    if (course) {
+      formData.append("metadata[course]", course);
     }
 
     setIsUploading(true);
@@ -162,11 +167,12 @@ export function useRecordingMutations({ canManageRecordings, canUpload, classId 
     const title = editForm.title.trim();
     const description = editForm.description.trim();
     const duration = editForm.duration.trim();
+    const course = editForm.course.trim();
 
     if (!title) {
-      setEditError("Title is required.");
+      setEditError("Concept is required.");
       setEditFieldErrors({
-        title: "Title is required.",
+        title: "Concept is required.",
       });
 
       return false;
@@ -202,6 +208,9 @@ export function useRecordingMutations({ canManageRecordings, canUpload, classId 
           duration: duration || null,
           recorded_at: editForm.recorded_at || null,
           visibility: editForm.visibility,
+          metadata: {
+            course: course || null,
+          },
         }),
       });
 

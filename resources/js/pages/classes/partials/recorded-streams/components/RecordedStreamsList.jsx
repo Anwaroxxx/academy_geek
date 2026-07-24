@@ -8,7 +8,7 @@ export function RecordedStreamsList({
   recordings,
 }) {
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <div className="grid items-stretch gap-5 md:grid-cols-2 xl:grid-cols-3">
       {recordings.map((recording) => (
         <RecordedStreamCard
           key={recording.id}
