@@ -1,130 +1,239 @@
-import { CheckCircle, Clock, Play, Sparkles, Video } from 'lucide-react';
+import {
+    BookOpen,
+    Braces,
+    Calendar,
+    CheckCircle,
+    Clock,
+    Code2,
+    FileCode2,
+    Flame,
+    Github,
+    GitBranch,
+    LayoutGrid,
+    Palette,
+    Paintbrush,
+    Play,
+    Sparkles,
+    Video,
+    Wind,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import RecordingPagination from './RecordingPagination';
 import {
+    courseBadgeStyles,
+    courseVisual,
     formatDate,
     formatDuration,
     formatWatchedDuration,
+    recordingCourse,
     recordingTitle,
     watchedSeconds,
 } from '../lib/recording-formatters';
 
-function RecordingRow({ recording, isSelected, onSelect }) {
+const courseIcons = {
+    'HTML Course': FileCode2,
+    'CSS Course': Paintbrush,
+    'JavaScript Course': Braces,
+    'Bootstrap Course': LayoutGrid,
+    'Sass Course': Palette,
+    'Git Course': GitBranch,
+    'GitHub Course': Github,
+    'Tailwind Course': Wind,
+    'Laravel Course': Flame,
+    'General Course': BookOpen,
+};
+
+function CourseBadge({ course }) {
+    const className =
+        courseBadgeStyles[course] ?? courseBadgeStyles['General Course'];
+    const Icon = courseIcons[course] ?? Code2;
+
+    return (
+        <span
+            className={cn(
+                'inline-flex w-fit items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold',
+                className,
+            )}
+        >
+            <Icon className="size-3.5" aria-hidden="true" />
+            {course}
+        </span>
+    );
+}
+
+function RecordingThumbnail({ recording, course, duration, title }) {
+    const visual = courseVisual(course);
+
+    return (
+        <div className="relative aspect-video overflow-hidden rounded-t-2xl bg-neutral-950">
+            {recording.thumbnail_url ? (
+                <img
+                    src={recording.thumbnail_url}
+                    alt=""
+                    className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+                />
+            ) : (
+                <div
+                    className={cn(
+                        'absolute inset-0 bg-gradient-to-br',
+                        visual.thumbnail,
+                    )}
+                >
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_24%_18%,rgba(255,255,255,0.32),transparent_24%)]" />
+                    <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.12),transparent_34%,rgba(251,191,36,0.12)_65%,transparent)]" />
+                    <p className="absolute right-5 bottom-5 left-5 line-clamp-2 text-lg font-black tracking-tight text-white drop-shadow md:text-xl">
+                        {title}
+                    </p>
+                </div>
+            )}
+
+            <div className="absolute inset-0 flex items-center justify-center">
+                <span className="flex size-12 items-center justify-center rounded-full border border-white/25 bg-black/45 text-white shadow-2xl backdrop-blur transition group-hover:scale-105 group-hover:bg-amber-400 group-hover:text-amber-950">
+                    <Play className="ml-0.5 size-5 fill-current" aria-hidden="true" />
+                </span>
+            </div>
+
+            {duration && (
+                <span className="absolute right-3 bottom-3 rounded-md bg-black/75 px-2 py-1 font-mono text-xs font-bold text-white shadow-lg backdrop-blur">
+                    {duration}
+                </span>
+            )}
+        </div>
+    );
+}
+
+function RecordingCard({ recording, isSelected, onSelect }) {
     const recordedDate = formatDate(recording.recorded_at);
     const duration = formatDuration(recording.duration_seconds);
     const title = recordingTitle(recording);
+    const course = recordingCourse(recording);
     const watched = watchedSeconds(recording);
     const durationSeconds = Number(recording.duration_seconds) || 0;
-    const isCompleted = Boolean(recording.completed_at)
-        || (durationSeconds > 0 && watched >= Math.ceil(durationSeconds * 0.9));
+    const isCompleted =
+        Boolean(recording.completed_at) ||
+        (durationSeconds > 0 && watched >= Math.ceil(durationSeconds * 0.9));
     const hasWatchedProgress = isCompleted || watched > 0;
     const progress = isCompleted
         ? 100
         : durationSeconds > 0
-            ? Math.min(100, (watched / durationSeconds) * 100)
-            : 0;
+          ? Math.min(100, (watched / durationSeconds) * 100)
+          : 0;
     const roundedProgress = isCompleted
         ? 100
         : watched > 0 && progress > 0
-            ? Math.max(1, Math.round(progress))
-            : Math.round(progress);
+          ? Math.max(1, Math.round(progress))
+          : Math.round(progress);
     const progressText = isCompleted
         ? 'Completed'
         : `${formatWatchedDuration(watched)}${
-            durationSeconds > 0 ? ` - ${roundedProgress}%` : ''
-        }`;
+              durationSeconds > 0 ? ` · ${roundedProgress}%` : ''
+          }`;
+
     return (
         <article
             className={cn(
-                'group grid overflow-hidden rounded-2xl border border-border/70 bg-card text-card-foreground shadow-md shadow-black/5 transition hover:border-amber-300/70 md:grid-cols-[104px_minmax(0,1fr)_auto]',
-                isSelected &&
-                    'border-amber-300 bg-muted ring-2 ring-amber-300/40',
+                'group flex h-full min-h-[520px] flex-col overflow-hidden rounded-2xl border border-[#E8E1D1] bg-white text-card-foreground shadow-[0_12px_30px_rgba(16,32,51,0.06)] transition duration-200 hover:-translate-y-0.5 hover:border-amber-300/70 hover:shadow-[0_22px_44px_rgba(255,208,38,0.14)] dark:border-neutral-800 dark:bg-neutral-950/70 dark:shadow-black/20 dark:hover:border-amber-300/45',
+                isSelected && 'border-amber-300 ring-2 ring-amber-300/40',
             )}
             aria-current={isSelected ? 'true' : undefined}
             aria-labelledby={`recording-${recording.id}-title`}
         >
-            <div
-                className="relative flex min-h-24 items-center justify-center overflow-hidden bg-muted text-amber-600 md:min-h-0"
-                aria-hidden="true"
-            >
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(251,191,36,0.28),transparent_34%),linear-gradient(135deg,rgba(245,158,11,0.18),rgba(10,10,10,0.96))]" />
-                <div className="relative flex size-10 items-center justify-center rounded-xl border border-amber-300/20 bg-amber-300/15 shadow-lg">
-                    <Video className="size-5" />
-                </div>
-            </div>
+            <RecordingThumbnail
+                recording={recording}
+                course={course}
+                duration={duration}
+                title={title}
+            />
 
-            <div className="min-w-0 space-y-2.5 p-4 md:px-4 md:py-3.5">
-                <div className="flex flex-wrap items-center gap-2">
-                    {isSelected && (
-                        <span className="rounded-full border border-amber-300/50 bg-amber-300/10 px-2.5 py-1 text-xs font-semibold text-amber-200">
-                            Featured
-                        </span>
-                    )}
-                </div>
-
-                <h3
-                    id={`recording-${recording.id}-title`}
-                    className="line-clamp-1 text-base font-semibold tracking-tight md:text-lg"
-                >
-                    {title}
-                </h3>
-
-                {recording.session?.title && (
-                    <p className="line-clamp-1 text-sm font-medium text-amber-200/90">
-                        {recording.session.title}
-                    </p>
-                )}
-
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-neutral-400">
-                    {recordedDate && <span>{recordedDate}</span>}
-                    {duration && (
-                        <span className="inline-flex items-center gap-1">
-                            <Clock className="size-4" aria-hidden="true" />
-                            {duration}
-                        </span>
-                    )}
-                </div>
-
-                {hasWatchedProgress && (
-                    <div className="w-full max-w-[360px] space-y-1.5">
-                        <div
-                            className="h-[5px] overflow-hidden rounded-full bg-neutral-200 shadow-inner dark:bg-neutral-800"
-                            aria-label={`${progressText} progress`}
-                        >
-                            <div
-                                className="h-full rounded-full bg-amber-400 transition-[width]"
-                                style={{
-                                    minWidth: progress > 0 ? '6px' : undefined,
-                                    width: `${progress}%`,
-                                }}
-                            />
-                        </div>
-                        <p className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-500 dark:text-amber-200/85">
-                            {isCompleted && (
-                                <CheckCircle className="size-3.5" aria-hidden="true" />
-                            )}
-                            {progressText}
-                        </p>
+            <div className="flex flex-1 flex-col p-4">
+                <div className="space-y-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <CourseBadge course={course} />
+                        {isSelected && (
+                            <span className="rounded-full border border-amber-300/50 bg-amber-300/10 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-200">
+                                Featured
+                            </span>
+                        )}
                     </div>
-                )}
-            </div>
 
-            <div className="flex items-center justify-end gap-3 border-t border-white/10 px-4 py-3 md:border-t-0 md:border-l">
-                {isSelected && (
-                    <span className="hidden text-sm text-neutral-400 lg:inline">
-                        Selected
-                    </span>
-                )}
-                <Button
-                    type="button"
-                    onClick={() => onSelect(recording)}
-                    className="bg-amber-400 text-amber-950 hover:bg-amber-300"
-                    aria-label={`Watch ${title}`}
-                >
-                    <Play className="size-4 fill-current" aria-hidden="true" />
-                    Watch
-                </Button>
+                    <div className="space-y-2">
+                        <h3
+                            id={`recording-${recording.id}-title`}
+                            className="line-clamp-2 text-base font-black leading-6 text-neutral-950 dark:text-white"
+                        >
+                            {title}
+                        </h3>
+                        <p className="line-clamp-2 min-h-10 text-sm leading-5 text-neutral-600 dark:text-neutral-400">
+                            {recording.description || 'No description provided'}
+                        </p>
+                        {recording.session?.title && (
+                            <p className="line-clamp-1 text-sm font-medium text-amber-700 dark:text-amber-300">
+                                {recording.session.title}
+                            </p>
+                        )}
+                    </div>
+                </div>
+
+                <div className="mt-4 grid gap-3 border-t border-neutral-100 pt-4 text-xs font-medium text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                        {recordedDate && (
+                            <span className="inline-flex items-center gap-1.5">
+                                <Calendar className="h-3.5 w-3.5 text-neutral-400" />
+                                {recordedDate}
+                            </span>
+                        )}
+                        {duration && (
+                            <span className="inline-flex items-center gap-1.5">
+                                <Clock className="h-3.5 w-3.5 text-neutral-400" />
+                                {duration}
+                            </span>
+                        )}
+                    </div>
+
+                    {hasWatchedProgress && (
+                        <div className="space-y-1.5">
+                            <div
+                                className="h-[5px] overflow-hidden rounded-full bg-neutral-200 shadow-inner dark:bg-neutral-800"
+                                aria-label={`${progressText} progress`}
+                            >
+                                <div
+                                    className="h-full rounded-full bg-amber-400 transition-[width]"
+                                    style={{
+                                        minWidth: progress > 0 ? '6px' : undefined,
+                                        width: `${isCompleted ? 100 : progress}%`,
+                                    }}
+                                />
+                            </div>
+                            <p className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-500 dark:text-amber-200/85">
+                                {isCompleted && (
+                                    <CheckCircle
+                                        className="size-3.5"
+                                        aria-hidden="true"
+                                    />
+                                )}
+                                {progressText}
+                            </p>
+                        </div>
+                    )}
+                </div>
+
+                <div className="mt-auto flex items-center justify-end gap-3 pt-5">
+                    {isSelected && (
+                        <span className="hidden text-sm text-muted-foreground lg:inline">
+                            Selected
+                        </span>
+                    )}
+                    <Button
+                        type="button"
+                        onClick={() => onSelect(recording)}
+                        className="bg-amber-400 font-bold text-amber-950 hover:bg-amber-300"
+                        aria-label={`Watch ${title}`}
+                    >
+                        <Play className="size-4 fill-current" aria-hidden="true" />
+                        Watch
+                    </Button>
+                </div>
             </div>
         </article>
     );
@@ -197,10 +306,10 @@ export default function RecentRecordingsSection({
                 </div>
             ) : (
                 <div className="space-y-5">
-                    <ul className="space-y-3">
+                    <ul className="grid items-stretch gap-5 md:grid-cols-2 xl:grid-cols-3">
                         {recordings.map((recording) => (
                             <li key={recording.id}>
-                                <RecordingRow
+                                <RecordingCard
                                     recording={recording}
                                     isSelected={
                                         selectedRecordingId === recording.id

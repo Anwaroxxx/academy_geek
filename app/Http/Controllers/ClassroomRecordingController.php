@@ -51,6 +51,7 @@ class ClassroomRecordingController extends Controller
             'video' => ['required', 'file', 'mimetypes:video/mp4', 'max:204800'],
             'recorded_at' => ['nullable', 'date'],
             'visibility' => ['nullable', 'string', 'in:class_students,staff_only'],
+            'metadata.course' => ['nullable', 'string', 'in:HTML Course,CSS Course,JavaScript Course,Bootstrap Course,Sass Course,Git Course,GitHub Course,Tailwind Course,Laravel Course'],
         ], [
             'duration.regex' => 'Duration must be in MM:SS or HH:MM:SS format.',
         ]);
@@ -126,6 +127,7 @@ class ClassroomRecordingController extends Controller
             'duration' => ['nullable', 'string', 'regex:/^(\d+:[0-5]\d|\d+:[0-5]\d:[0-5]\d)$/'],
             'recorded_at' => ['nullable', 'date'],
             'visibility' => ['nullable', 'string', 'in:class_students,staff_only'],
+            'metadata.course' => ['nullable', 'string', 'in:HTML Course,CSS Course,JavaScript Course,Bootstrap Course,Sass Course,Git Course,GitHub Course,Tailwind Course,Laravel Course'],
         ], [
             'duration.regex' => 'Duration must be in MM:SS or HH:MM:SS format.',
         ]);
@@ -208,7 +210,6 @@ class ClassroomRecordingController extends Controller
                 'description' => $recording->session?->description,
             ],
             'detail_url' => null,
-            'thumbnail_url' => null,
         ]);
     }
 

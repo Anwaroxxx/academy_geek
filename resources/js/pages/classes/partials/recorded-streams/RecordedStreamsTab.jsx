@@ -1,9 +1,10 @@
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import DeleteModal from "@/components/DeleteModal";
 import { RecordingEditModal } from "./components/RecordingEditModal";
 import { RecordingEmptyState } from "./components/RecordingEmptyState";
 import { RecordedStreamsHeader } from "./components/RecordedStreamsHeader";
 import { RecordedStreamsList } from "./components/RecordedStreamsList";
+import { RecordedStreamsPagination } from "./components/RecordedStreamsPagination";
 import {
   durationInputValue,
   initialRecordingForm,
@@ -29,12 +30,27 @@ export default function RecordedStreamsTab({
   const [editingRecording, setEditingRecording] = useState(null);
   const [editForm, setEditForm] = useState(initialRecordingForm);
   const [deletingRecording, setDeletingRecording] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const perPage = 6;
+  const totalPages = Math.max(1, Math.ceil(recordingItems.length / perPage));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const pageStartIndex = (safeCurrentPage - 1) * perPage;
+  const paginatedRecordings = useMemo(
+    () => recordingItems.slice(pageStartIndex, pageStartIndex + perPage),
+    [pageStartIndex, recordingItems],
+  );
+  const pageFrom = recordingItems.length === 0 ? 0 : pageStartIndex + 1;
+  const pageTo = Math.min(pageStartIndex + paginatedRecordings.length, recordingItems.length);
 
   const mutations = useRecordingMutations({
     canManageRecordings,
     canUpload,
     classId,
   });
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
 
   const resetUploadForm = () => {
     setUploadForm(initialRecordingForm);
@@ -87,6 +103,7 @@ export default function RecordedStreamsTab({
   const openEditDialog = (recording) => {
     setEditingRecording(recording);
     setEditForm({
+      course: recording.metadata?.course || "",
       title: recording.title || "",
       description: recording.description || "",
       duration: durationInputValue(recording.duration_seconds),
@@ -194,13 +211,25 @@ export default function RecordedStreamsTab({
         {recordingItems.length === 0 ? (
           <RecordingEmptyState />
         ) : (
-          <RecordedStreamsList
-            canManageRecordings={canManageRecordings}
-            deletingRecordingId={mutations.deletingRecordingId}
-            onDelete={setDeletingRecording}
-            onEdit={openEditDialog}
-            recordings={recordingItems}
-          />
+          <>
+            <RecordedStreamsList
+              canManageRecordings={canManageRecordings}
+              deletingRecordingId={mutations.deletingRecordingId}
+              onDelete={setDeletingRecording}
+              onEdit={openEditDialog}
+              recordings={paginatedRecordings}
+            />
+
+            <RecordedStreamsPagination
+              currentPage={safeCurrentPage}
+              from={pageFrom}
+              lastPage={totalPages}
+              onPageChange={setCurrentPage}
+              perPage={perPage}
+              to={pageTo}
+              total={recordingItems.length}
+            />
+          </>
         )}
       </div>
     </section>

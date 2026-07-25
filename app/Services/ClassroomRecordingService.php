@@ -11,9 +11,11 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Symfony\Component\Process\Process;
 use Throwable;
 
 class ClassroomRecordingService
@@ -55,6 +57,7 @@ class ClassroomRecordingService
         );
 
         $storedPath = $video->storeAs(dirname($path), basename($path), 'local');
+        $thumbnailPath = $this->generateThumbnail($class, $storedPath);
 
         try {
             return ClassroomRecording::create([
@@ -65,6 +68,7 @@ class ClassroomRecordingService
                 'provider' => 'manual_upload',
                 'storage_disk' => 'local',
                 'storage_path' => $storedPath,
+                'thumbnail_path' => $thumbnailPath,
                 'duration_seconds' => $this->durationToSeconds($data['duration'] ?? null),
                 'recorded_at' => $data['recorded_at'] ?? now(),
                 'available_at' => now(),
@@ -75,10 +79,15 @@ class ClassroomRecordingService
                     'original_name' => $video->getClientOriginalName(),
                     'size_bytes' => $video->getSize(),
                     'source' => 'manual_upload',
+                    'course' => $data['metadata']['course'] ?? null,
                 ],
             ]);
         } catch (Throwable $exception) {
             Storage::disk('local')->delete($storedPath);
+
+            if ($thumbnailPath) {
+                Storage::disk('public')->delete($thumbnailPath);
+            }
 
             throw $exception;
         }
@@ -192,12 +201,16 @@ class ClassroomRecordingService
      */
     public function updateRecording(ClassroomRecording $recording, array $data): ClassroomRecording
     {
+        $metadata = $recording->metadata ?? [];
+        $metadata['course'] = $data['metadata']['course'] ?? null;
+
         $recording->fill([
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
             'recorded_at' => $data['recorded_at'] ?? null,
             'duration_seconds' => $this->durationToSeconds($data['duration'] ?? null),
             'visibility' => $data['visibility'] ?? 'class_students',
+            'metadata' => $metadata,
         ]);
 
         $recording->save();
@@ -243,7 +256,9 @@ class ClassroomRecordingService
             'stream_url' => $hasStreamableSource && Route::has('recordings.stream')
                 ? route('recordings.stream', $recording)
                 : null,
+            'thumbnail_url' => $this->thumbnailUrl($recording),
             'created_by' => $recording->createdBy?->name,
+            'metadata' => $recording->metadata ?? [],
         ];
 
         if ($user) {
@@ -252,6 +267,86 @@ class ClassroomRecordingService
         }
 
         return $payload;
+    }
+
+    private function generateThumbnail(Classes $class, string $videoPath): ?string
+    {
+        $ffmpegPath = trim((string) env('FFMPEG_PATH', 'ffmpeg'));
+
+        if ($ffmpegPath === '') {
+            return null;
+        }
+
+        $inputPath = Storage::disk('local')->path($videoPath);
+
+        if (! is_file($inputPath)) {
+            return null;
+        }
+
+        $thumbnailPath = sprintf(
+            'classroom/recording-thumbnails/%d/%s.jpg',
+            $class->id,
+            (string) Str::uuid(),
+        );
+
+        try {
+            Storage::disk('public')->makeDirectory(dirname($thumbnailPath));
+
+            $outputPath = Storage::disk('public')->path($thumbnailPath);
+            $process = new Process([
+                $ffmpegPath,
+                '-y',
+                '-ss',
+                '00:00:02',
+                '-i',
+                $inputPath,
+                '-vframes',
+                '1',
+                '-q:v',
+                '2',
+                $outputPath,
+            ]);
+            $process->setTimeout(30);
+            $process->run();
+
+            if (! $process->isSuccessful() || ! is_file($outputPath)) {
+                Storage::disk('public')->delete($thumbnailPath);
+
+                Log::warning('Classroom recording thumbnail generation failed.', [
+                    'video_path' => $videoPath,
+                    'exit_code' => $process->getExitCode(),
+                    'error' => trim($process->getErrorOutput()),
+                ]);
+
+                return null;
+            }
+
+            return $thumbnailPath;
+        } catch (Throwable $exception) {
+            Storage::disk('public')->delete($thumbnailPath);
+
+            Log::warning('Classroom recording thumbnail generation skipped.', [
+                'video_path' => $videoPath,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    private function thumbnailUrl(ClassroomRecording $recording): ?string
+    {
+        $thumbnailPath = trim((string) $recording->thumbnail_path);
+
+        if ($thumbnailPath === '') {
+            return null;
+        }
+
+        if (! Storage::disk('public')->exists($thumbnailPath)) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($thumbnailPath);
     }
 
     private function canViewClassRecordings(Classes $class, User $user): bool

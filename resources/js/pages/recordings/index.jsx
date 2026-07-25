@@ -121,7 +121,7 @@ export default function RecordingsIndex() {
         setIsPlayerOpen(true);
     };
 
-    const handleClosePlayer = () => {
+    const handleClosePlayer = useCallback(() => {
         setIsPlaybackCompleted(false);
         setIsPlayerOpen(false);
         setFeaturedRecording(null);
@@ -131,7 +131,7 @@ export default function RecordingsIndex() {
                 lastWatchButtonRef.current.focus();
             }
         });
-    };
+    }, []);
 
     const handlePlaybackEnded = () => {
         setIsPlaybackCompleted(true);
@@ -139,14 +139,17 @@ export default function RecordingsIndex() {
 
     const handleProgressSaved = useCallback((progress) => {
         setProgressOverrides((current) => {
-            const previousWatched = Number(current[progress.id]?.watched_seconds) || 0;
+            const previousWatched =
+                Number(current[progress.id]?.watched_seconds) || 0;
             const nextWatched = Number(progress.watched_seconds) || 0;
 
             return {
                 ...current,
                 [progress.id]: {
                     completed_at:
-                        progress.completed_at ?? current[progress.id]?.completed_at ?? null,
+                        progress.completed_at ??
+                        current[progress.id]?.completed_at ??
+                        null,
                     watched_seconds: Math.max(previousWatched, nextWatched),
                 },
             };
@@ -186,12 +189,27 @@ export default function RecordingsIndex() {
 
     const isWatching = isPlayerOpen && Boolean(featuredRecording);
 
+    useEffect(() => {
+        if (!isWatching) {
+            return;
+        }
+
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') {
+                handleClosePlayer();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [handleClosePlayer, isWatching]);
+
     return (
         <div className="min-h-[calc(100dvh-4rem)] overflow-x-hidden bg-[#f6f5f1] text-foreground dark:bg-[#101010]">
             <div className="mx-auto flex w-full max-w-7xl flex-col gap-7 px-4 py-6 md:px-6 lg:py-8">
-                {/* Toolbar/header hide once a recording is open, matching
-                    YouTube's watch page (search/filters live on the
-                    browse page, not the watch page). */}
                 {!isWatching && (
                     <>
                         <div className="rounded-3xl border border-black/5 bg-white/80 p-5 shadow-xl shadow-black/5 dark:border-white/10 dark:bg-neutral-950/72 dark:shadow-black/20 md:p-6">
@@ -211,11 +229,7 @@ export default function RecordingsIndex() {
                 )}
 
                 {isWatching ? (
-                    // YouTube-style watch layout: main video column on the
-                    // left, "Up next" sidebar list of the other recordings
-                    // on the right. `items-start` keeps the sidebar from
-                    // stretching to the (taller) video column's height.
-                    <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+                    <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
                         <FeaturedRecordingSection
                             ref={playerRef}
                             recording={featuredRecording}

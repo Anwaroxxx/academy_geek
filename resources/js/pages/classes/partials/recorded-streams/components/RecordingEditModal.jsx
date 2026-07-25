@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { courseOptions } from "../lib/recordingFormatters";
 
 export function RecordingEditModal({
   error,
@@ -27,6 +28,8 @@ export function RecordingEditModal({
   onUpdateForm,
   open,
 }) {
+  const selectedCourse = courseOptions.includes(form.course) ? form.course : "";
+
   return (
     <Dialog
       open={open}
@@ -52,18 +55,48 @@ export function RecordingEditModal({
           )}
 
           <div className="grid gap-2">
-            <Label htmlFor="edit-recording-title">Title</Label>
+            <Label htmlFor="edit-recording-title">Concept</Label>
             <Input
               id="edit-recording-title"
               value={form.title}
               onChange={(event) => onUpdateForm("title", event.target.value)}
               aria-invalid={Boolean(fieldErrors.title)}
               disabled={isUpdating}
+              placeholder="JavaScript DOM Manipulation Replay"
               required
             />
             {fieldErrors.title && (
               <p className="text-xs font-medium text-red-600 dark:text-red-300">
                 {fieldErrors.title}
+              </p>
+            )}
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="edit-recording-course">Course</Label>
+            <Select
+              value={selectedCourse}
+              onValueChange={(value) => onUpdateForm("course", value)}
+              disabled={isUpdating}
+            >
+              <SelectTrigger
+                id="edit-recording-course"
+                className="w-full"
+                aria-invalid={Boolean(fieldErrors["metadata.course"])}
+              >
+                <SelectValue placeholder="Select a course" />
+              </SelectTrigger>
+              <SelectContent>
+                {courseOptions.map((course) => (
+                  <SelectItem key={course} value={course}>
+                    {course}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {fieldErrors["metadata.course"] && (
+              <p className="text-xs font-medium text-red-600 dark:text-red-300">
+                {fieldErrors["metadata.course"]}
               </p>
             )}
           </div>
