@@ -1,4 +1,4 @@
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
 function initials(name) {
@@ -29,7 +29,36 @@ function getAvatarColor(seed) {
     return colors[index];
 }
 
+function resolveAvatarUrl(participant, user) {
+    const resolvedUser = user?.user ?? user;
+    const candidates = [
+        participant?.avatar,
+        participant?.avatar_url,
+        participant?.photo,
+        participant?.photo_url,
+        participant?.profile_photo_url,
+        participant?.image,
+        participant?.user?.avatar,
+        participant?.user?.avatar_url,
+        participant?.user?.photo,
+        participant?.user?.photo_url,
+        participant?.user?.profile_photo_url,
+        participant?.user?.image,
+        resolvedUser?.avatar,
+        resolvedUser?.avatar_url,
+        resolvedUser?.photo,
+        resolvedUser?.photo_url,
+        resolvedUser?.profile_photo_url,
+        resolvedUser?.image,
+    ];
+
+    return candidates.find(
+        (candidate) => typeof candidate === 'string' && candidate.trim(),
+    );
+}
+
 export default function ParticipantAvatar({
+    participant,
     user,
     isHost = false,
     size = 'medium',
@@ -42,13 +71,20 @@ export default function ParticipantAvatar({
 
     const resolvedUser = user?.user ?? user;
     const isHostUser = Boolean(isHost || resolvedUser?.role === 'host');
+    const avatarUrl = resolveAvatarUrl(participant, user);
     const fallbackBaseClass = isHostUser
         ? 'bg-amber-100 text-amber-950'
         : getAvatarColor(resolvedUser?.id ?? resolvedUser?.name ?? user?.id ?? user?.name);
 
     return (
         <Avatar className={cn(avatarSizeClass, className)}>
-            {/* <AvatarImage src={user?.profile_photo_url} alt={user?.name ?? 'Participant'} className={imageClassName} /> */}
+            {avatarUrl && (
+                <AvatarImage
+                    src={avatarUrl}
+                    alt={resolvedUser?.name ?? 'Participant'}
+                    className={cn('object-cover', imageClassName)}
+                />
+            )}
             <AvatarFallback
                 className={cn(
                     fallbackBaseClass,

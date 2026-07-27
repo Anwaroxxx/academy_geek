@@ -8,6 +8,7 @@ export default function ClassroomVideoStage({
     isFocusMode,
     session,
     jitsiAccess,
+    streamEndedByStaff,
     currentParticipant,
     currentUser,
     participants,
@@ -52,6 +53,7 @@ export default function ClassroomVideoStage({
             <MainVideoArea
                 session={session}
                 jitsiAccess={jitsiAccess}
+                streamEndedByStaff={streamEndedByStaff}
                 currentParticipant={currentParticipant}
                 currentUser={currentUser}
                 participants={participants}

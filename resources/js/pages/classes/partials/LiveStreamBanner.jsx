@@ -7,7 +7,13 @@ const features = [
     { label: 'Real-time Interaction', icon: MessageSquare },
 ];
 
-export default function LiveStreamBanner({ classId, href }) {
+export default function LiveStreamBanner({
+    actionLabel = 'Start Live Session',
+    classId,
+    description = 'Start and manage your live class session',
+    href,
+    title = 'Live Streaming',
+}) {
     const sessionHref = href ?? (classId ? `/classroom/sessions/${classId}` : '#');
 
     return (
@@ -16,11 +22,11 @@ export default function LiveStreamBanner({ classId, href }) {
                 {/* left side  */}
                 <div className="min-w-0">
                     <h2 className="text-2xl font-bold leading-tight text-[#1F2937] md:text-[1.6rem] dark:text-white">
-                        Live Streaming
+                        {title}
                     </h2>
 
                     <p className="mt-1 text-sm font-medium text-[#64748B] md:text-base dark:text-[#9CA3AF]">
-                        Start and manage your live class session
+                        {description}
                     </p>
 
                     <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -52,7 +58,7 @@ export default function LiveStreamBanner({ classId, href }) {
                     className="inline-flex w-fit items-center gap-2 rounded-xl bg-gradient-to-r from-[#FFD026] to-[#FFC400] px-6 py-3 text-sm font-bold text-[#102033] shadow-md shadow-yellow-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-yellow-500/30"
                 >
                     <Play className="h-4 w-4 fill-[#102033]" />
-                    <span>Start Live Session</span>
+                    <span>{actionLabel}</span>
 
                     <span className="ml-2 flex items-center gap-1 rounded-md bg-white/55 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-red-600">
                         <span className="h-1.5 w-1.5 rounded-full bg-red-500" />

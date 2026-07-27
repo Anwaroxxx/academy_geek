@@ -147,6 +147,7 @@ function VideoTile({ label, participant, isMain = false }) {
 export default function MainVideoArea({
     session,
     jitsiAccess,
+    streamEndedByStaff = false,
     currentParticipant,
     currentUser,
     participants = [],
@@ -179,12 +180,23 @@ export default function MainVideoArea({
     const onJitsiApiReadyRef = useRef(onJitsiApiReady);
     const onJitsiApiDisposedRef = useRef(onJitsiApiDisposed);
     const onJitsiMediaStateChangeRef = useRef(onJitsiMediaStateChange);
+    const filmstripHiddenRef = useRef(false);
+    const filmstripHideTimeoutRef = useRef(null);
     const [jitsiStatus, setJitsiStatus] = useState('idle');
     const [jitsiError, setJitsiError] = useState(null);
 
     const hostParticipant =
         participants.find((item) => item.role === 'host') ?? participants[0];
-    const showJoinButton = !isJoined && canJoin;
+    const canStartRoom = Boolean(
+        jitsiAccess?.can_start_room || jitsiAccess?.is_host,
+    );
+    const hostIsOnline = Boolean(
+        jitsiAccess?.room_is_live || jitsiAccess?.host_is_online,
+    );
+    const shouldMountJitsi =
+        !streamEndedByStaff && isJoined && (canStartRoom || hostIsOnline);
+    const isWaitingForTeacher = isJoined && !canStartRoom && !hostIsOnline;
+    const showJoinButton = !streamEndedByStaff && !isJoined && canJoin;
     const nativeToolbarButtons = useMemo(
         () => (showNativeRecordingControl ? ['recording'] : []),
         [showNativeRecordingControl],
@@ -202,6 +214,13 @@ export default function MainVideoArea({
     }
 
     const disposeJitsi = useCallback(() => {
+        if (typeof window !== 'undefined') {
+            window.clearTimeout(filmstripHideTimeoutRef.current);
+        }
+
+        filmstripHideTimeoutRef.current = null;
+        filmstripHiddenRef.current = false;
+
         const api = jitsiApiRef.current;
 
         if (!api) {
@@ -251,7 +270,7 @@ export default function MainVideoArea({
             jitsiListeners.length = 0;
         };
 
-        if (!isJoined) {
+        if (!shouldMountJitsi) {
             disposeJitsi();
             setJitsiStatus('idle');
             setJitsiError(null);
@@ -323,6 +342,7 @@ export default function MainVideoArea({
                 );
 
                 jitsiApiRef.current = api;
+                filmstripHiddenRef.current = false;
                 applyJitsiIframePermissions(api);
                 setJitsiStatus('ready');
                 onJitsiApiReadyRef.current?.(api);
@@ -348,6 +368,20 @@ export default function MainVideoArea({
                 addJitsiListener('videoConferenceJoined', () => {
                     api.executeCommand?.('displayName', displayNameRef.current);
                     api.executeCommand?.('subject', subjectRef.current);
+
+                    window.clearTimeout(filmstripHideTimeoutRef.current);
+                    filmstripHideTimeoutRef.current = window.setTimeout(() => {
+                        if (
+                            cancelled ||
+                            filmstripHiddenRef.current ||
+                            jitsiApiRef.current !== api
+                        ) {
+                            return;
+                        }
+
+                        api.executeCommand?.('toggleFilmStrip');
+                        filmstripHiddenRef.current = true;
+                    }, 200);
                 });
                 addJitsiListener('videoMuteStatusChanged', ({ muted }) => {
                     onJitsiMediaStateChangeRef.current?.({
@@ -382,12 +416,12 @@ export default function MainVideoArea({
     }, [
         disposeJitsi,
         hasValidJitsiConfig,
-        isJoined,
         jitsiAccess?.jwt,
         nativeToolbarButtons,
         jitsiDomain,
         jitsiRoomName,
         jitsiScriptUrl,
+        shouldMountJitsi,
     ]);
 
     useEffect(() => {
@@ -463,22 +497,30 @@ export default function MainVideoArea({
                     )}
                     aria-label="Jitsi classroom video"
                 >
-                    {jitsiStatus !== 'ready' && (
+                    {(streamEndedByStaff || jitsiStatus !== 'ready') && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-[1px]">
                             <div className="mx-auto max-w-md px-6 text-center">
                                 <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-white/10 [@media(max-width:639px)_and_(orientation:portrait)]:hidden">
                                     <MonitorPlay className="size-8 text-white/70" />
                                 </div>
                                 <p className="text-base font-semibold text-white">
-                                    {showJoinButton
+                                    {streamEndedByStaff
+                                        ? 'The coach has left the stream'
+                                        : showJoinButton
                                         ? 'Ready to join'
+                                        : isWaitingForTeacher
+                                          ? 'Waiting For The Coach'
                                         : jitsiStatus === 'error'
                                           ? 'Jitsi video is unavailable'
                                           : 'Loading Jitsi video'}
                                 </p>
                                 <p className="mt-2 text-sm leading-6 text-white/60">
-                                    {showJoinButton
+                                    {streamEndedByStaff
+                                        ? 'This classroom stream has ended because the coach or admin left the room.'
+                                        : showJoinButton
                                         ? 'Join the session to start the classroom stream.'
+                                        : isWaitingForTeacher
+                                          ? 'Waiting For The Coach to start the video room...'
                                         : (jitsiError ??
                                           'The meeting is opening inside this classroom area.')}
                                 </p>

@@ -38,8 +38,7 @@ export function useCurrentUrl() {
   const isCurrentUrl = (
   urlToCheck,
   currentUrl,
-  startsWith = false) =>
-  {
+  startsWith = false) => {
     const urlToCompare = currentUrl ?? currentUrlPath;
     const urlString = toUrl(urlToCheck);
 
@@ -61,16 +60,14 @@ export function useCurrentUrl() {
 
   const isCurrentOrParentUrl = (
   urlToCheck,
-  currentUrl) =>
-  {
+  currentUrl) => {
     return isCurrentUrl(urlToCheck, currentUrl, true);
   };
 
   const whenCurrentUrl = (
   urlToCheck,
   ifTrue,
-  ifFalse = null) =>
-  {
+  ifFalse = null) => {
     return isCurrentUrl(urlToCheck) ? ifTrue : ifFalse;
   };
 
