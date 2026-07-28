@@ -7,6 +7,7 @@ import {
     Settings,
     ShieldCheck,
     UsersRound,
+    Video,
 } from 'lucide-react';
 import { TransText } from '@/components/TransText';
 import {
@@ -47,6 +48,11 @@ const navigationSections = [
                 title: <TransText en="Classes" fr="Classes" ar="Classes" />,
                 href: classesIndex(),
                 icon: UsersRound,
+            },
+            {
+                title: <TransText en="Recordings" fr="Recordings" ar="Recordings" />,
+                href: '/recordings',
+                icon: Video,
             },
         ],
     },

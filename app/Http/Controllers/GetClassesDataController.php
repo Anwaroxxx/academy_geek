@@ -134,7 +134,7 @@ class GetClassesDataController extends Controller
                             ]
                         );
                     }
-                    // $this->get_avatars_service->get($coach["avatar"]);
+                    $this->get_avatars_service->get($coach["avatar"]);
                     $this->assignRoles($coach["roles"], $user);
                     $this->assignClass($formation, $user, true);
                 }
@@ -168,7 +168,7 @@ class GetClassesDataController extends Controller
                             ]
                         );
                     }
-                    // $this->get_avatars_service->get($student["avatar"]);
+                    $this->get_avatars_service->get($student["avatar"]);
                     $this->assignRoles($student["roles"], $user);
                     $this->assignClass($formation, $user);
                 }

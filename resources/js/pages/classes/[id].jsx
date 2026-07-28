@@ -21,10 +21,13 @@ export default function ClasseDetails({ courses = [] , data }) {
             {/* //^^ chabab  import your component here tawa7d maycodi hna  khdmo dakchi  fl partials then  importiwh   */}
 
             {/* live stram banner  */}
-  {!selectedStudent && <LiveStreamBanner />}
+  {!selectedStudent && <LiveStreamBanner classId={data.id} />}
 <Tabs
+    classId={data.id}
     students={data.students}
     coach={data.coach}
+    recordings={data.recordings}
+    canUploadRecordings={data.permissions?.can_upload_recordings === true}
     selectedStudent={selectedStudent}
     setSelectedStudent={setSelectedStudent}
 />
