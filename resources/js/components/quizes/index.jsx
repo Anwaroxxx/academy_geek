@@ -9,9 +9,9 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import AiModal from './partials/AiModal';
-import ManualModal from './partials/ManualModal';
-import PdfModal from './partials/PdfModal';
+import AiModal from '@/pages/concepts/partials/AiModal';
+import ManualModal from '@/pages/concepts/partials/ManualModal';
+import PdfModal from '@/pages/concepts/partials/PdfModal';
 
 export default function Quizes({ topicId , conceptId }) {
     console.log({

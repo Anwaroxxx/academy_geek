@@ -20,8 +20,8 @@ import Exercises from '@/components/exercices';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import DeleteModal from '@/components/DeleteModal';
-import ManualModal from '@/components/quizes/partials/ManualModal';
-import ReviewModal from '@/components/quizes/partials/ReviewModal';
+import ManualModal from '@/pages/concepts/partials/ManualModal';
+import ReviewModal from '@/pages/concepts/partials/ReviewModal';
 import { destroy as destroyQuiz } from '@/routes/quizes';
 
 const statusStyles = {
@@ -70,6 +70,13 @@ const formatRelativeDate = (value) => {
 
 const normalizeStatus = (status) => String(status || '').toLowerCase();
 const normalizeSource = (source) => String(source || '').toLowerCase();
+const getApprovedQuestionCount = (quiz) => {
+    if (!Array.isArray(quiz?.questions)) return 0;
+
+    return quiz.questions.filter(
+        (question) => normalizeStatus(question?.status) === 'approved',
+    ).length;
+};
 const getQuizStatusLabel = (source, status) => {
     if (source === 'manual' && status === 'approved') return 'Published';
     if (['ai', 'pdf'].includes(source) && status === 'approved') {
@@ -111,7 +118,7 @@ function QuizActionButton({ label, icon: Icon, onClick, disabled = false }) {
 function QuizCard({ quiz, onPreview, onEdit, onDelete, deleting }) {
     const status = normalizeStatus(quiz.status);
     const source = normalizeSource(quiz.source);
-    const questionCount = quiz.questions_count ?? quiz.questionsCount ?? 0;
+    const questionCount = getApprovedQuestionCount(quiz);
     const createdAt = formatRelativeDate(quiz.created_at);
     const statusLabel = getQuizStatusLabel(source, status);
     const sourceLabels = {
@@ -404,28 +411,34 @@ export default function LessonTabs({
                 onOpenChange={(open) => {
                     if (!open) setPreviewingQuiz(null);
                 }}
-                onReviewed={(quizId, approvedQuestionIds) => {
+                onReviewed={(quizId, reviewStatuses, orderedQuestionIds) => {
                     setDisplayedQuizzes((previousQuizzes) =>
-                        previousQuizzes.map((quiz) =>
-                            quiz.id === quizId
-                                ? {
-                                      ...quiz,
-                                      status: 'approved',
-                                      questions: (quiz.questions || [])
-                                          .filter((question) =>
-                                              approvedQuestionIds.includes(
-                                                  question.id,
-                                              ),
-                                          )
-                                          .map((question) => ({
-                                              ...question,
-                                              status: 'approved',
-                                          })),
-                                      questions_count:
-                                          approvedQuestionIds.length,
-                                  }
-                                : quiz,
-                        ),
+                        previousQuizzes.map((quiz) => {
+                            if (quiz.id !== quizId) {
+                                return quiz;
+                            }
+
+                            const nextQuestions = (quiz.questions || []).map(
+                                (question) => ({
+                                    ...question,
+                                    status:
+                                        reviewStatuses[question.id] ||
+                                        'approved',
+                                }),
+                            );
+                            const questionMap = new Map(
+                                nextQuestions.map((question) => [question.id, question]),
+                            );
+                            const reorderedQuestions = (
+                                orderedQuestionIds || nextQuestions.map((question) => question.id)
+                            ).map((questionId) => questionMap.get(questionId)).filter(Boolean);
+
+                            return {
+                                ...quiz,
+                                status: 'approved',
+                                questions: reorderedQuestions,
+                            };
+                        }),
                     );
                 }}
                 quiz={previewingQuiz}

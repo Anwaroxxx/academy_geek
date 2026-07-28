@@ -75,9 +75,10 @@ class ConceptBuilderController extends Controller
                         'questions' => $quiz->questions->map(fn ($question) => [
                             'id' => $question->id,
                             'text' => $question->question_text,
-                            'status' => is_array($questionReviews[(string) $question->id] ?? null)
-                                ? ($questionReviews[(string) $question->id]['status'] ?? null)
-                                : ($questionReviews[(string) $question->id] ?? null),
+                            'status' => $question->status
+                                ?: (is_array($questionReviews[(string) $question->id] ?? null)
+                                    ? ($questionReviews[(string) $question->id]['status'] ?? null)
+                                    : ($questionReviews[(string) $question->id] ?? null)),
                             'answers' => $question->options->map(fn ($option) => [
                                 'id' => $option->id,
                                 'text' => $option->option_text,

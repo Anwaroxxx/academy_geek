@@ -146,7 +146,7 @@ class QuizController extends Controller
 
                 if (Schema::hasColumn('quiz_questions', 'status')) {
                     $question->forceFill([
-                        'status' => 'pending',
+                        'status' => 'approved',
                     ]);
                 }
                 if (Schema::hasColumn('quiz_questions', 'level')) {
@@ -252,7 +252,7 @@ class QuizController extends Controller
                 ]);
 
                 if (Schema::hasColumn('quiz_questions', 'status')) {
-                    $question->forceFill(['status' => 'pending']);
+                    $question->forceFill(['status' => 'approved']);
                 }
                 if (Schema::hasColumn('quiz_questions', 'level')) {
                     $question->forceFill(['level' => $questionData['level']]);
@@ -391,7 +391,7 @@ class QuizController extends Controller
                 if (! $question->exists
                     && $quiz->source !== 'manual'
                     && Schema::hasColumn('quiz_questions', 'status')) {
-                    $question->forceFill(['status' => 'pending']);
+                    $question->forceFill(['status' => 'approved']);
                 }
 
                 $question->save();
@@ -430,9 +430,12 @@ class QuizController extends Controller
     {
         $this->ensureCanManageQuiz($request, $quiz);
 
-        if (! in_array($quiz->source, ['ai', 'pdf'], true) || $quiz->status !== 'pending_review') {
+        $canReview = in_array($quiz->source, ['ai', 'pdf'], true)
+            && in_array($quiz->status, ['pending_review', 'approved'], true);
+
+        if (! $canReview) {
             throw ValidationException::withMessages([
-                'questions' => 'Only pending AI or PDF quizzes can be reviewed.',
+                'questions' => 'Only AI or PDF quizzes can be reviewed.',
             ]);
         }
 
@@ -458,18 +461,6 @@ class QuizController extends Controller
                 ]);
             }
 
-            $approvedQuestionIds = $submittedQuestions
-                ->filter(fn ($question) => ($question['status'] ?? null) === 'approved')
-                ->pluck('id')
-                ->map(fn ($questionId) => (int) $questionId)
-                ->values();
-
-            if ($approvedQuestionIds->isEmpty()) {
-                throw ValidationException::withMessages([
-                    'questions' => 'At least one question must be approved.',
-                ]);
-            }
-
             $reviewedAt = now();
             $existingReviewData = json_decode($quiz->description ?? '', true);
             $quizDescription = is_array($existingReviewData)
@@ -477,29 +468,54 @@ class QuizController extends Controller
                     ? ($existingReviewData['description'] ?? null)
                     : $quiz->description;
 
+            $reviewStatuses = $submittedQuestions
+                ->mapWithKeys(fn ($question) => [
+                    (int) $question['id'] => ($question['status'] ?? 'approved') === 'rejected'
+                        ? 'rejected'
+                        : 'approved',
+                ])
+                ->all();
+
+            $submittedQuestionIds = $submittedQuestions
+                ->pluck('id')
+                ->map(fn ($questionId) => (int) $questionId)
+                ->values();
+
+            $questionOrdering = $submittedQuestionIds->all();
+
+            $quiz->questions()->update([
+                'order_index' => DB::raw('order_index + 1000'),
+            ]);
+
+            foreach ($questionOrdering as $questionIndex => $questionId) {
+                $quiz->questions()->whereKey($questionId)->update([
+                    'order_index' => $questionIndex + 1,
+                ]);
+            }
+
             if (Schema::hasColumns('quiz_questions', ['status', 'reviewed_by', 'reviewed_at'])) {
-                $quiz->questions()
-                    ->whereKey($approvedQuestionIds)
-                    ->update([
-                        'status' => 'approved',
+                $quiz->questions()->get()->each(function ($question) use ($reviewStatuses, $request, $reviewedAt) {
+                    $question->update([
+                        'status' => $reviewStatuses[$question->id] ?? 'approved',
                         'reviewed_by' => $request->user()->id,
                         'reviewed_at' => $reviewedAt,
                     ]);
+                });
             }
-
-            $quiz->questions()->whereNotIn('id', $approvedQuestionIds)->delete();
 
             $quiz->update([
                 'status' => 'approved',
                 'description' => json_encode([
                     'description' => $quizDescription,
-                    'question_reviews' => $approvedQuestionIds->mapWithKeys(fn ($questionId) => [
-                        (string) $questionId => [
-                            'status' => 'approved',
-                            'reviewed_by' => $request->user()->id,
-                            'reviewed_at' => $reviewedAt->toIso8601String(),
-                        ],
-                    ])->all(),
+                    'question_reviews' => collect($reviewStatuses)
+                        ->mapWithKeys(fn ($status, $questionId) => [
+                            (string) $questionId => [
+                                'status' => $status,
+                                'reviewed_by' => $request->user()->id,
+                                'reviewed_at' => $reviewedAt->toIso8601String(),
+                            ],
+                        ])
+                        ->all(),
                 ]),
             ]);
         });
@@ -529,8 +545,10 @@ class QuizController extends Controller
         $questionIds = $quiz->questions()->pluck('id');
         $reviewedAt = $status === 'approved' ? now() : null;
 
+        $effectiveStatus = $status === 'pending' ? 'approved' : $status;
+
         if (Schema::hasColumn('quiz_questions', 'status')) {
-            $quiz->questions()->update(['status' => $status]);
+            $quiz->questions()->update(['status' => $effectiveStatus]);
         }
 
         if ($reviewedAt && Schema::hasColumns('quiz_questions', ['reviewed_by', 'reviewed_at'])) {
