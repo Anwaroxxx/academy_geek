@@ -63,6 +63,7 @@ function normalizeTopics(serverTopics = []) {
         status: topic.status || 'draft',
         hasQuiz: Boolean(topic.hasQuiz),
         hasExercise: Boolean(topic.hasExercise),
+        exercises: topic.exercises || [],
     }));
 }
 
@@ -70,6 +71,8 @@ export default function Concept() {
     const {
         concept: serverConcept,
         topics: serverTopics = [],
+        quizzes = [],
+        publishableClasses = [],
         errors = {},
     } = usePage().props;
 
@@ -259,7 +262,10 @@ export default function Concept() {
                     />
 
                     <TopicWorkspace
+                        concept={concept}
                         topic={activeTopic}
+                        quizzes={quizzes}
+                        publishableClasses={publishableClasses}
                         onUpdateTopic={(updates) => {
                             if (!activeTopic) return;
                             updateTopic(activeTopic.id, updates);

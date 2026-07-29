@@ -18,10 +18,10 @@ export default function ConceptTopbar({ concept, onSave }) {
                 <div className="hidden lg:flex items-center gap-2 mr-2">
                         <Quizes conceptId={concept?.id} />
                         <Exercises coachType="coding" conceptId={concept?.id} />
-                    
+
                 </div>
 
-                
+
 
                 <button
                     type="button"

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { router } from '@inertiajs/react';
 import { ChevronDown, FileUp, PenLine, Plus, Sparkles } from 'lucide-react';
 import { TransText } from '@/components/TransText';
 import { Button } from '@/components/ui/button';
@@ -8,14 +9,20 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import AiModal from './partials/AiModal';
-import ManualModal from './partials/ManualModal';
-import PdfModal from './partials/PdfModal';
+import AiModal from '@/pages/concepts/partials/AiModal';
+import ManualModal from '@/pages/concepts/partials/ManualModal';
+import PdfModal from '@/pages/concepts/partials/PdfModal';
 
-export default function Quizes() {
+export default function Quizes({ topicId , conceptId }) {
+    console.log({
+    topicId,
+    conceptId,
+});
+
     const [pdfOpen, setPdfOpen] = useState(false);
     const [aiOpen, setAiOpen] = useState(false);
     const [manualOpen, setManualOpen] = useState(false);
+    const refreshQuizzes = () => router.reload({ only: ['quizzes'] });
 
     return (
         <>
@@ -38,7 +45,7 @@ export default function Quizes() {
                     >
                         <FileUp className="size-4 text-alpha" />
                         <TransText
-                            en="Generate by PDF"
+                            en="Generate from PDF"
                             fr="Générer par PDF"
                             ar="إنشاء من PDF"
                         />
@@ -70,9 +77,27 @@ export default function Quizes() {
                 </DropdownMenuContent>
             </DropdownMenu>
 
-            <PdfModal open={pdfOpen} onOpenChange={setPdfOpen} />
-            <AiModal open={aiOpen} onOpenChange={setAiOpen} />
-            <ManualModal open={manualOpen} onOpenChange={setManualOpen} />
+            <PdfModal
+                open={pdfOpen}
+                onOpenChange={setPdfOpen}
+                onCreated={refreshQuizzes}
+                topicId={topicId}
+                conceptId={conceptId}
+            />
+            <AiModal
+                open={aiOpen}
+                onOpenChange={setAiOpen}
+                onCreated={refreshQuizzes}
+                topicId={topicId}
+                conceptId={conceptId}
+            />
+            <ManualModal
+                open={manualOpen}
+                onOpenChange={setManualOpen}
+                onCreated={refreshQuizzes}
+                topicId={topicId}
+                conceptId={conceptId}
+            />
         </>
     );
 }

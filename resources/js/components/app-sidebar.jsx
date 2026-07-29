@@ -2,6 +2,7 @@ import { Link, usePage } from '@inertiajs/react';
 import {
     BookOpen,
     ChevronRight,
+    FileQuestion,
     LayoutDashboard,
     Settings,
     ShieldCheck,
@@ -22,6 +23,7 @@ import { cn, toUrl } from '@/lib/utils';
 import { index as classesIndex } from '@/actions/App/Http/Controllers/ClassController';
 import { dashboard as dashboardIndex } from '@/routes';
 import { index as coursesIndex } from '@/routes/courses';
+import { index as quizesIndex } from '@/routes/quizes';
 import { edit as profileEdit } from '@/routes/profile';
 import { edit as securityEdit } from '@/routes/security';
 

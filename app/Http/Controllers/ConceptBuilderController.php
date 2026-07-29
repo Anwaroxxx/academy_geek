@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdateConceptBuilderRequest;
 use App\Models\Concept;
+use App\Models\Quiz;
 use App\Models\Topic;
 use App\Models\TopicResource;
 use App\Models\User;
@@ -25,9 +26,24 @@ class ConceptBuilderController extends Controller
             'topics' => fn ($query) => $query->orderBy('order_index'),
             'topics.lessons' => fn ($query) => $query->orderBy('order_index'),
             'topics.resources',
-            'topics.quizzes',
+            'topics.quizzes' => fn ($query) => $query
+                ->with(['questions' => fn ($questionQuery) => $questionQuery
+                    ->with(['options' => fn ($optionQuery) => $optionQuery->orderBy('order_index')])
+                    ->orderBy('order_index')])
+                ->withCount('questions')
+                ->latest(),
             'topics.exercises',
         ]);
+
+        $conceptQuizzes = Quiz::query()
+            ->where('concept_id', $concept->id)
+            ->whereNull('topic_id')
+            ->with(['questions' => fn ($questionQuery) => $questionQuery
+                ->with(['options' => fn ($optionQuery) => $optionQuery->orderBy('order_index')])
+                ->orderBy('order_index')])
+            ->withCount('questions')
+            ->latest()
+            ->get();
 
         return Inertia::render('concepts/index', [
             'concept' => [
@@ -37,6 +53,41 @@ class ConceptBuilderController extends Controller
                 'description' => $concept->description,
             ],
             'topics' => $concept->topics->map(fn (Topic $topic) => $this->transformTopic($topic))->values(),
+            'quizzes' => $concept->topics
+                ->flatMap(fn (Topic $topic) => $topic->quizzes)
+                ->concat($conceptQuizzes)
+                ->map(function ($quiz) {
+                    $reviewData = json_decode($quiz->description ?? '', true);
+                    $questionReviews = is_array($reviewData)
+                        ? ($reviewData['question_reviews'] ?? [])
+                        : [];
+
+                    return [
+                        'id' => $quiz->id,
+                        'topic_id' => $quiz->topic_id,
+                        'concept_id' => $quiz->concept_id,
+                        'title' => $quiz->title,
+                        'passing_score' => $quiz->passing_score,
+                        'source' => $quiz->source,
+                        'status' => $quiz->status,
+                        'questions_count' => $quiz->questions_count,
+                        'created_at' => $quiz->created_at,
+                        'questions' => $quiz->questions->map(fn ($question) => [
+                            'id' => $question->id,
+                            'text' => $question->question_text,
+                            'status' => $question->status
+                                ?: (is_array($questionReviews[(string) $question->id] ?? null)
+                                    ? ($questionReviews[(string) $question->id]['status'] ?? null)
+                                    : ($questionReviews[(string) $question->id] ?? null)),
+                            'answers' => $question->options->map(fn ($option) => [
+                                'id' => $option->id,
+                                'text' => $option->option_text,
+                                'is_correct' => $option->is_correct,
+                            ])->values(),
+                        ])->values(),
+                    ];
+                })
+                ->values(),
         ]);
     }
 
@@ -298,5 +349,3 @@ class ConceptBuilderController extends Controller
         ];
     }
 }
-
-

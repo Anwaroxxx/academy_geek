@@ -1,4 +1,5 @@
-import { useState, useRef } from 'react';
+import { useRef, useState } from 'react';
+import { router } from '@inertiajs/react';
 import { Upload, FileText, X, Loader2 } from 'lucide-react';
 import { TransText } from '@/components/TransText';
 import { Button } from '@/components/ui/button';
@@ -10,18 +11,17 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { generate as fileGenerate } from '@/routes/quizes/file';
 
-const ACCEPTED_MIME = new Set([
-    'application/pdf',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'application/vnd.ms-excel',
-]);
+const MAX_SIZE_MB = 10;
 
-const MAX_SIZE_MB = 20;
-
-export default function PdfModal({ open, onOpenChange }) {
+export default function PdfModal({
+    open,
+    onOpenChange,
+    onCreated,
+    topicId,
+    conceptId,
+}) {
     const [file, setFile] = useState(null);
     const [dragging, setDragging] = useState(false);
     const [error, setError] = useState('');
@@ -32,6 +32,7 @@ export default function PdfModal({ open, onOpenChange }) {
         setFile(null);
         setError('');
         setProcessing(false);
+        if (inputRef.current) inputRef.current.value = '';
     };
 
     const handleOpenChange = (nextOpen) => {
@@ -43,11 +44,16 @@ export default function PdfModal({ open, onOpenChange }) {
         if (!picked) return;
         setError('');
 
-        if (!ACCEPTED_MIME.has(picked.type)) {
-            setError('Only PDF, Word (.doc/.docx) or Excel (.xls/.xlsx) files are accepted.');
+        if (
+            picked.type !== 'application/pdf' ||
+            !picked.name.toLowerCase().endsWith('.pdf')
+        ) {
+            setFile(null);
+            setError('Only PDF files are accepted.');
             return;
         }
         if (picked.size > MAX_SIZE_MB * 1024 * 1024) {
+            setFile(null);
             setError(`File size must not exceed ${MAX_SIZE_MB} MB.`);
             return;
         }
@@ -63,15 +69,40 @@ export default function PdfModal({ open, onOpenChange }) {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!file) {
-            setError('Please upload a file before submitting.');
+            setError('Please select a PDF before generating the quiz.');
+            return;
+        }
+        if (!topicId && !conceptId) {
+            setError(
+                'Please select a lesson or concept before generating the quiz.',
+            );
             return;
         }
         setProcessing(true);
-        // TODO: replace with real API call
-        setTimeout(() => {
-            setProcessing(false);
-            handleOpenChange(false);
-        }, 3000);
+        setError('');
+
+        const formData = new FormData();
+        formData.append('file', file);
+        if (topicId) formData.append('topic_id', topicId);
+        if (conceptId) formData.append('concept_id', conceptId);
+
+        router.post(fileGenerate.url(), formData, {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                onCreated?.();
+                handleOpenChange(false);
+            },
+            onError: (errors) => {
+                setError(
+                    errors.file ??
+                        errors.topic_id ??
+                        errors.concept_id ??
+                        'Unable to generate a quiz from this PDF.',
+                );
+            },
+            onFinish: () => setProcessing(false),
+        });
     };
 
     const fileExt = file ? file.name.split('.').pop().toUpperCase() : '';
@@ -83,24 +114,31 @@ export default function PdfModal({ open, onOpenChange }) {
                 <DialogHeader>
                     <DialogTitle>
                         <TransText
-                            en="Generate Quiz from File"
-                            fr="Générer un Quiz depuis un Fichier"
-                            ar="إنشاء اختبار من ملف"
+                            en="Generate Quiz from PDF"
+                            fr="Générer un Quiz depuis un PDF"
+                            ar="إنشاء اختبار من ملف PDF"
                         />
                     </DialogTitle>
                     <DialogDescription>
                         <TransText
-                            en="Upload a PDF, Word, or Excel file and we'll extract questions from it automatically."
-                            fr="Téléchargez un fichier PDF, Word ou Excel et nous en extrairons les questions automatiquement."
-                            ar="قم بتحميل ملف PDF أو Word أو Excel وسنستخرج الأسئلة منه تلقائيًا."
+                            en="Upload a PDF and we'll generate questions from its readable text."
+                            fr="Téléchargez un PDF et nous générerons des questions à partir de son texte lisible."
+                            ar="حمّل ملف PDF وسننشئ أسئلة من النص القابل للقراءة فيه."
                         />
                     </DialogDescription>
                 </DialogHeader>
 
-                <form id="pdf-quiz-form" onSubmit={handleSubmit} className="space-y-4">
+                <form
+                    id="pdf-quiz-form"
+                    onSubmit={handleSubmit}
+                    className="space-y-4"
+                >
                     {/* Drop zone */}
                     <div
-                        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+                        onDragOver={(e) => {
+                            e.preventDefault();
+                            setDragging(true);
+                        }}
                         onDragLeave={() => setDragging(false)}
                         onDrop={handleDrop}
                         onClick={() => !file && inputRef.current?.click()}
@@ -110,16 +148,18 @@ export default function PdfModal({ open, onOpenChange }) {
                             dragging
                                 ? 'border-alpha bg-alpha/10'
                                 : file
-                                    ? 'border-good/40 bg-good/5 dark:border-good/30 dark:bg-good/5'
-                                    : 'border-beta/20 hover:border-alpha/50 hover:bg-alpha/5 dark:border-beta dark:hover:border-alpha/40 dark:hover:bg-alpha/5',
+                                  ? 'border-good/40 bg-good/5 dark:border-good/30 dark:bg-good/5'
+                                  : 'border-beta/20 hover:border-alpha/50 hover:bg-alpha/5 dark:border-beta dark:hover:border-alpha/40 dark:hover:bg-alpha/5',
                         ].join(' ')}
                     >
                         <input
                             ref={inputRef}
                             type="file"
-                            accept=".pdf,.doc,.docx,.xls,.xlsx"
+                            accept=".pdf,application/pdf"
                             className="sr-only"
-                            onChange={(e) => validateAndSet(e.target.files?.[0])}
+                            onChange={(e) =>
+                                validateAndSet(e.target.files?.[0])
+                            }
                         />
 
                         {file ? (
@@ -137,7 +177,10 @@ export default function PdfModal({ open, onOpenChange }) {
                                 </div>
                                 <button
                                     type="button"
-                                    onClick={(e) => { e.stopPropagation(); reset(); }}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        reset();
+                                    }}
                                     className="shrink-0 rounded-md p-1 text-beta/40 transition-colors hover:text-error dark:text-light/40 dark:hover:text-error"
                                 >
                                     <X className="size-4" />
@@ -157,16 +200,14 @@ export default function PdfModal({ open, onOpenChange }) {
                                         />
                                     </p>
                                     <p className="mt-1 text-xs text-beta/50 dark:text-light/50">
-                                        PDF, DOC, DOCX, XLS, XLSX — max {MAX_SIZE_MB} MB
+                                        PDF — max {MAX_SIZE_MB} MB
                                     </p>
                                 </div>
                             </>
                         )}
                     </div>
 
-                    {error && (
-                        <p className="text-xs text-error">{error}</p>
-                    )}
+                    {error && <p className="text-xs text-error">{error}</p>}
                 </form>
 
                 <DialogFooter>
@@ -188,10 +229,18 @@ export default function PdfModal({ open, onOpenChange }) {
                         {processing ? (
                             <>
                                 <Loader2 className="size-4 animate-spin" />
-                                <TransText en="Processing…" fr="Traitement…" ar="جارٍ المعالجة…" />
+                                <TransText
+                                    en="Processing…"
+                                    fr="Traitement…"
+                                    ar="جارٍ المعالجة…"
+                                />
                             </>
                         ) : (
-                            <TransText en="Generate Quiz" fr="Générer le Quiz" ar="إنشاء الاختبار" />
+                            <TransText
+                                en="Generate Quiz"
+                                fr="Générer le Quiz"
+                                ar="إنشاء الاختبار"
+                            />
                         )}
                     </Button>
                 </DialogFooter>

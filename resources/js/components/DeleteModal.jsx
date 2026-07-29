@@ -24,6 +24,9 @@ import { useState } from 'react';
  * - cancelLabel?: string
  * - onConfirm: () => Promise<void> | void
  * - loading?: boolean
+ * - icon?: React.ComponentType
+ * - iconClassName?: string
+ * - confirmButtonClassName?: string
  * - children?: React.ReactNode
  */
 export default function DeleteModal({
@@ -37,6 +40,9 @@ export default function DeleteModal({
     cancelLabel = 'Cancel',
     onConfirm,
     loading: loadingProp = false,
+    icon: Icon = Trash2,
+    iconClassName = 'bg-error/10 text-error',
+    confirmButtonClassName = 'bg-error text-light hover:bg-error/90',
     children,
 }) {
     const [internalLoading, setInternalLoading] = useState(false);
@@ -82,13 +88,13 @@ export default function DeleteModal({
         <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
             <DialogContent className="sm:max-w-[480px]">
                 <DialogHeader className="items-center text-center sm:items-center sm:text-center">
-                    <span className="mb-1 inline-flex h-12 w-12 items-center justify-center rounded-full bg-error/10 text-error">
-                        <Trash2 size={28} />
+                    <span
+                        className={`mb-1 inline-flex h-12 w-12 items-center justify-center rounded-full ${iconClassName}`}
+                    >
+                        <Icon size={28} />
                     </span>
                     <DialogTitle>{title}</DialogTitle>
-                    <DialogDescription>
-                        {description}
-                    </DialogDescription>
+                    <DialogDescription>{description}</DialogDescription>
                 </DialogHeader>
 
                 {children}
@@ -105,7 +111,7 @@ export default function DeleteModal({
                     </Button>
                     <Button
                         type="button"
-                        className="min-w-[120px] bg-error text-light hover:bg-error/90 disabled:opacity-70"
+                        className={`min-w-[120px] disabled:opacity-70 ${confirmButtonClassName}`}
                         onClick={handleConfirm}
                         disabled={loading}
                     >

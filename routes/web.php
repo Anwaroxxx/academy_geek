@@ -26,4 +26,6 @@ require __DIR__."/admin/classes.php";
 require __DIR__."/admin/courses.php";
 require __DIR__."/auth.php";
 require __DIR__.'/settings.php';
+require __DIR__."/admin/quizes.php";
+// require __DIR__.'/admin/concept-builder.php';
 require __DIR__.'/concept-builder.php';
