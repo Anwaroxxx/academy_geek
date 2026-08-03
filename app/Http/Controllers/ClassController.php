@@ -19,6 +19,8 @@ use Inertia\Inertia;
 
 class ClassController extends Controller
 {
+    private const ONLINE_STALE_AFTER_SECONDS = 90;
+
     /**
      * Display a listing of the resource.
      */
@@ -195,6 +197,26 @@ class ClassController extends Controller
         }
     }
 
+    private function markStaleClassroomParticipantsOffline(ClassroomSession $session): void
+    {
+        $now = now();
+
+        ClassroomParticipant::where('classroom_session_id', $session->id)
+            ->where('is_online', true)
+            ->where(function ($query) use ($now): void {
+                $query
+                    ->whereNull('last_seen_at')
+                    ->orWhere('last_seen_at', '<', $now->copy()->subSeconds(self::ONLINE_STALE_AFTER_SECONDS));
+            })
+            ->update([
+                'is_online' => false,
+                'is_screen_sharing' => false,
+                'hand_raised' => false,
+                'left_at' => $now,
+                'updated_at' => $now,
+            ]);
+    }
+
     private function participantPayload(ClassroomParticipant $participant, ?User $currentUser = null): array
     {
         $participant->loadMissing('user');
@@ -210,6 +232,8 @@ class ClassController extends Controller
             'can_share_screen' => (bool) $participant->can_share_screen,
             'hand_raised' => (bool) $participant->hand_raised,
             'joined_at' => $participant->joined_at?->toISOString(),
+            'left_at' => $participant->left_at?->toISOString(),
+            'last_seen_at' => $participant->last_seen_at?->toISOString(),
             'is_current_user' => $currentUser ? (int) $participant->user_id === (int) $currentUser->id : false,
             'user' => [
                 'id' => $participant->user?->id,
@@ -223,6 +247,8 @@ class ClassController extends Controller
 
     private function classroomParticipantsPayload(ClassroomSession $session, User $currentUser)
     {
+        $this->markStaleClassroomParticipantsOffline($session);
+
         return $session->participants()
             ->with('user')
             ->orderByRaw("case when role = 'host' then 0 else 1 end")
@@ -391,6 +417,7 @@ class ClassController extends Controller
         $roomIsLive = (bool) Cache::get($this->classroomLiveCacheKey($class), false);
         $session = $this->getOrCreateClassroomSession($class, $coach);
         $this->syncClassroomParticipants($session, $class, $coach, $user);
+        $this->markStaleClassroomParticipantsOffline($session);
         $session->load('participants.user');
         $participants = $this->classroomParticipantsPayload($session, $user);
         $currentParticipant = $participants->firstWhere('user_id', $user->id);
@@ -609,6 +636,35 @@ class ClassController extends Controller
         return response()->json([
             'participant' => $this->participantPayload($participant, $user),
             'participants' => $this->classroomParticipantsPayload($session->fresh(), $user),
+        ]);
+    }
+
+    public function heartbeatClassroomParticipant($id): JsonResponse
+    {
+        $class = Classes::where("id", $id)->get()->first();
+        if (!$class) {
+            return abort(404);
+        }
+
+        $user = Auth::user();
+        abort_unless($this->canAccessClass($user, $class), 403);
+
+        $coach = $this->getLastCoach($class);
+        $session = $this->getOrCreateClassroomSession($class, $coach);
+        $this->syncClassroomParticipants($session, $class, $coach, $user);
+
+        $participant = ClassroomParticipant::where('classroom_session_id', $session->id)
+            ->where('user_id', $user->id)
+            ->firstOrFail();
+
+        $participant->fill([
+            'is_online' => true,
+            'left_at' => null,
+            'last_seen_at' => now(),
+        ])->save();
+
+        return response()->json([
+            'participant' => $this->participantPayload($participant, $user),
         ]);
     }
 

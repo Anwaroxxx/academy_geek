@@ -28,6 +28,8 @@ Route::middleware(['auth',])->group(function () {
         ->name('classroom.sessions.participants.join');
     Route::post('/classroom/sessions/{id}/participants/leave', [ClassController::class, 'leaveClassroomParticipant'])
         ->name('classroom.sessions.participants.leave');
+    Route::post('/classroom/sessions/{id}/heartbeat', [ClassController::class, 'heartbeatClassroomParticipant'])
+        ->name('classroom.sessions.heartbeat');
     Route::post('/classroom/sessions/{id}/participants/{participant}/screen-share', [ClassController::class, 'updateClassroomParticipantScreenShare'])
         ->name('classroom.sessions.participants.screen-share');
 });
