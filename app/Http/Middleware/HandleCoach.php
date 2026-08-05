@@ -23,10 +23,12 @@ class HandleCoach
         $role_id = Role::where("role", "coach")->value('id');
         $user_id = Auth::user()->id;
         $coach = User_role::where("user_id", $user_id)
-            ->where("role", $role_id)->first();
+            ->where("role_id", $role_id)->first();
+
         if (!$coach) {
             return redirect("/dashboard");
-            }
+        }
+
         return $next($request);
     }
 }

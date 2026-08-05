@@ -4,7 +4,7 @@ use App\Http\Controllers\CourseController;
 use App\Http\Controllers\CourseConceptRoadmapController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', 'role:admin,coach,super_admin'])->group(function () {
     Route::get('courses', [CourseController::class, 'index'])->name('courses.index');
     Route::post('courses', [CourseController::class, 'store'])->name('courses.store');
     Route::post('courses/{course}/update', [CourseController::class, 'update'])->name('courses.update.upload');

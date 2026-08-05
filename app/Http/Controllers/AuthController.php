@@ -115,7 +115,12 @@ class AuthController extends Controller
             ]);
         }
 
-        $this->assignRoles($token["roles"], $user);
+        $roles = $token["roles"] ?? [];
+        if (is_string($roles)) {
+            $roles = array_filter(array_map('trim', explode(',', $roles)));
+        }
+
+        $this->assignRoles((array) $roles, $user);
         $this->getAvatars->get($token["avatar"] ?? null);
 
         Auth::login($user);
