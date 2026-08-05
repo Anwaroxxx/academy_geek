@@ -313,7 +313,7 @@ class ConceptBuilderController extends Controller
         $manager = $request->user();
 
         abort_unless($manager instanceof User, 403);
-        abort_unless($this->userHasAnyRole($manager, ['admin', 'coach', 'super_admin']), 403);
+        abort_unless($this->userHasAnyRole($manager, ['admin', 'coach']), 403);
         abort_unless((int) $concept->course?->created_by === (int) $manager->id, 403);
     }
 

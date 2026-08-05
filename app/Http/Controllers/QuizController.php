@@ -582,7 +582,7 @@ class QuizController extends Controller
     {
         $manager = $request->user();
         abort_unless($manager instanceof User, 403);
-        abort_unless($manager->Roles()->whereIn('role', ['admin', 'coach', 'super_admin'])->exists(), 403);
+        abort_unless($manager->Roles()->whereIn('role', ['admin', 'coach'])->exists(), 403);
 
         $quiz->loadMissing(['topic.concept.course', 'concept.course']);
         $course = $quiz->topic?->concept?->course ?? $quiz->concept?->course;

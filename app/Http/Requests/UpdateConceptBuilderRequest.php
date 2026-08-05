@@ -20,7 +20,7 @@ class UpdateConceptBuilderRequest extends FormRequest
 
         $concept->loadMissing('course');
 
-        return $this->userHasAnyRole($user, ['admin', 'coach', 'super_admin'])
+        return $this->userHasAnyRole($user, ['admin', 'coach'])
             && (int) $concept->course?->created_by === (int) $user->id;
     }
 

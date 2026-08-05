@@ -3,7 +3,7 @@
 use App\Http\Controllers\QuizController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'verified', 'role:admin,coach,super_admin'])->group(function () {
+Route::middleware(['auth', 'verified', 'role:admin,coach'])->group(function () {
     Route::get('quizes', [QuizController::class, 'index'])->name('quizes.index');
     Route::post('quizes/manual', [QuizController::class, 'storeManual'])->name('quizes.manual.store');
     Route::post('quizes/ai', [QuizController::class, 'generateWithAi'])->name('quizes.ai.generate');

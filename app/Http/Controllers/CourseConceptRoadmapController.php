@@ -112,7 +112,7 @@ class CourseConceptRoadmapController extends Controller
     private function ensureCanManageCourses(Request $request): void
     {
         $manager = $this->courseManager($request);
-        abort_unless($this->userHasAnyRole($manager, ['admin', 'coach', 'super_admin']), 403);
+        abort_unless($this->userHasAnyRole($manager, ['admin', 'coach']), 403);
     }
 
     private function ensureOwnsCourse(Request $request, Course $course): void

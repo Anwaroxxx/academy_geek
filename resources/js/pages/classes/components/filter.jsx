@@ -19,7 +19,7 @@ const Filter = ({
     promos,
     Specialty,
     coaches,
-    suAdmin,
+    isAdmin,
 }) => {
     return (
         <>
@@ -72,7 +72,7 @@ const Filter = ({
                         </SelectGroup>
                     </SelectContent>
                 </Select>
-                {suAdmin === true ? (
+                {isAdmin === true ? (
                     <Button className="">
                         <Link href="/getclass">refresh</Link>
                     </Button>

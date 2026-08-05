@@ -31,4 +31,4 @@ Route::middleware(['auth',])->group(function () {
     Route::post('/classroom/sessions/{id}/participants/{participant}/screen-share', [ClassController::class, 'updateClassroomParticipantScreenShare'])
         ->name('classroom.sessions.participants.screen-share');
 });
-Route::get("/getclass", [GetClassesDataController::class, "getClasses"])->middleware("suAdmin");
+Route::get("/getclass", [GetClassesDataController::class, "getClasses"]);

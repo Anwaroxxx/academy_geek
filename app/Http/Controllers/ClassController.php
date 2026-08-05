@@ -58,7 +58,7 @@ class ClassController extends Controller
 
     private function isAdminUser(User $user): bool
     {
-        return $this->userHasAnyRole($user, ['admin', 'super_admin']);
+        return $this->userHasAnyRole($user, ['admin']);
     }
 
     private function isAssignedToClass(User $user, Classes $class): bool
@@ -265,19 +265,12 @@ class ClassController extends Controller
             $tmp["type"] = $class->type;
             $info[] = $tmp;
         }
-        $user_id = $user->id;
-        $role_id = Role::where("role", "super_admin")->value("id");
-        $isSuAdmin = User_role::where("user_id", $user_id)
-            ->where("role_id", $role_id)->first();
-        if (!$isSuAdmin) {
-            $val = false;
-        } else {
-            $val = true;
-        }
+        $val = $this->isAdminUser($user);
+
         return Inertia::render('classes/index', [
             "items" => array_values($info),
             "coaches" => $coaches,
-            "suAdmin" => $val
+            "isAdmin" => $val,
         ]);
     }
 

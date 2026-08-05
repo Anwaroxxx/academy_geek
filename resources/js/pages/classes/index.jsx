@@ -7,7 +7,7 @@ import illustration from '../../../../public/assets/images/banner/Lesson-bro.png
 import Cards from './components/cards';
 import Filter from './components/filter';
 
-const Classes = ({ items, coaches, suAdmin }) => {
+const Classes = ({ items, coaches, isAdmin }) => {
     const [field, setField] = useState('all');
     const [data, setData] = useState(items);
 
@@ -60,7 +60,7 @@ const Classes = ({ items, coaches, suAdmin }) => {
                     onCoachChange={setCoach}
                     coaches={['all', ...coaches]}
                     promos={promos}
-                    suAdmin={suAdmin}
+                    isAdmin={isAdmin}
                     Specialty={specialty}
                 ></Filter>
                 <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">

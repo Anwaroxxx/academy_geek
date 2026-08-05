@@ -191,7 +191,7 @@ class ClassroomRecordingController extends Controller
 
     private function isAdminUser(User $user): bool
     {
-        return $user->Roles()->whereIn('role', ['admin', 'super_admin'])->exists();
+        return $user->Roles()->whereIn('role', ['admin'])->exists();
     }
 
     /**

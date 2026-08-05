@@ -361,7 +361,7 @@ class ClassroomRecordingService
 
     private function isAdminUser(User $user): bool
     {
-        return $this->hasRole($user, ['admin', 'super_admin']);
+        return $this->hasRole($user, ['admin']);
     }
 
     /**
