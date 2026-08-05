@@ -16,15 +16,15 @@ class HandleRole
      *
      * @param  Closure(Request): (Response)  $next
      */
-    public function handle(Request $request, Closure $next, string $roles = null): Response
+    public function handle(Request $request, Closure $next, string ...$roles): Response
     {
         $user = Auth::user();
 
-        if (!$user || !$roles) {
+        if (!$user || empty($roles)) {
             return redirect('/dashboard');
         }
 
-        $allowedRoles = array_filter(array_map('trim', explode(',', $roles)));
+        $allowedRoles = array_filter(array_map('trim', $roles));
 
         if (!$this->userHasAnyRole($user, $allowedRoles)) {
             return redirect('/dashboard');
