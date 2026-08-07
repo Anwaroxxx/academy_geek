@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+const HEARTBEAT_INTERVAL_MS = 30000;
+
 function readCookie(name) {
     if (typeof document === 'undefined') {
         return null;
@@ -36,6 +38,38 @@ async function postClassroomRoomAction(classId, action, options = {}) {
     });
 }
 
+function postClassroomRoomActionOnUnload(classId, action) {
+    const xsrfToken = readCookie('XSRF-TOKEN');
+    const url = `/classroom/sessions/${classId}/${action}`;
+    const formData = new FormData();
+
+    if (xsrfToken) {
+        formData.append('_token', decodeURIComponent(xsrfToken));
+    }
+
+    if (navigator.sendBeacon?.(url, formData)) {
+        return;
+    }
+
+    const headers = {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+    };
+
+    if (xsrfToken) {
+        headers['X-XSRF-TOKEN'] = decodeURIComponent(xsrfToken);
+    }
+
+    fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        keepalive: true,
+        headers,
+        body: JSON.stringify({}),
+    }).catch(() => undefined);
+}
+
 async function getClassroomRoomStatus(classId) {
     return fetch(`/classroom/sessions/${classId}/status`, {
         method: 'GET',
@@ -59,6 +93,7 @@ export default function useClassroomActions({
     const getClassroomDataRef = useRef(getClassroomData);
     const getJitsiSyncRef = useRef(getJitsiSync);
     const onLocalLeaveRef = useRef(onLocalLeave);
+    const didSendUnloadLeaveRef = useRef(false);
     const [isJoined, setIsJoined] = useState(initialIsJoined);
     const [isStartingRoom, setIsStartingRoom] = useState(false);
     const [isStoppingRoom, setIsStoppingRoom] = useState(false);
@@ -158,24 +193,83 @@ export default function useClassroomActions({
     }, [canStartRoom, classId, classroomData, leaveLocally, roomIsLive]);
 
     useEffect(() => {
-        if (!canStartRoom || !isJoined || !roomIsLive) {
+        if (!isJoined || !classId) {
             return undefined;
         }
 
-        const handleBeforeUnload = () => {
-            postClassroomRoomAction(classId, 'stop', {
-                keepalive: true,
-            }).catch(() => undefined);
+        const sendLeave = () => {
+            if (didSendUnloadLeaveRef.current) {
+                return;
+            }
+
+            didSendUnloadLeaveRef.current = true;
+            postClassroomRoomActionOnUnload(
+                classId,
+                canStartRoom && roomIsLive ? 'stop' : 'participants/leave',
+            );
         };
 
-        window.addEventListener('beforeunload', handleBeforeUnload);
+        window.addEventListener('pagehide', sendLeave);
+        window.addEventListener('beforeunload', sendLeave);
 
-        return () =>
-            window.removeEventListener('beforeunload', handleBeforeUnload);
+        return () => {
+            window.removeEventListener('pagehide', sendLeave);
+            window.removeEventListener('beforeunload', sendLeave);
+        };
     }, [canStartRoom, classId, isJoined, roomIsLive]);
 
     useEffect(() => {
-        if (!isJoined || canStartRoom) {
+        if (!isJoined || !classId) {
+            return undefined;
+        }
+
+        let cancelled = false;
+
+        const sendHeartbeat = async () => {
+            const currentParticipant = classroomData().currentParticipant;
+
+            if (!currentParticipant?.id) {
+                return;
+            }
+
+            try {
+                const response = await postClassroomRoomAction(
+                    classId,
+                    'heartbeat',
+                );
+
+                if (!response.ok || cancelled) {
+                    return;
+                }
+
+                classroomData().applyParticipantResponse?.(
+                    await response.json(),
+                );
+            } catch {
+                // Heartbeat is intentionally best-effort; stale cleanup is authoritative.
+            }
+        };
+
+        sendHeartbeat();
+        const intervalId = window.setInterval(
+            sendHeartbeat,
+            HEARTBEAT_INTERVAL_MS,
+        );
+
+        return () => {
+            cancelled = true;
+            window.clearInterval(intervalId);
+        };
+    }, [classId, classroomData, isJoined]);
+
+    useEffect(() => {
+        if (isJoined) {
+            didSendUnloadLeaveRef.current = false;
+        }
+    }, [isJoined]);
+
+    useEffect(() => {
+        if (!isJoined) {
             return undefined;
         }
 
@@ -226,7 +320,6 @@ export default function useClassroomActions({
             window.clearInterval(intervalId);
         };
     }, [
-        canStartRoom,
         classId,
         classroomData,
         isJoined,
