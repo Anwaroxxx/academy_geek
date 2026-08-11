@@ -8,7 +8,19 @@ import { cn } from '@/lib/utils';
 import ParticipantAvatar from './ParticipantAvatar';
 
 
+const ONLINE_STALE_AFTER_MS = 90000;
 
+function isParticipantOnline(participant) {
+    if (!participant?.is_online || !participant.last_seen_at) {
+        return false;
+    }
+
+    const lastSeenAt = new Date(participant.last_seen_at).getTime();
+
+    return Number.isFinite(lastSeenAt)
+        ? Date.now() - lastSeenAt <= ONLINE_STALE_AFTER_MS
+        : false;
+}
 
 export default function ParticipantsPanel({
     participants = [],
@@ -36,11 +48,9 @@ export default function ParticipantsPanel({
         );
     }, [participants, search]);
 
-    const onlineParticipants = filteredParticipants.filter(
-        (participant) => participant.is_online,
-    );
+    const onlineParticipants = filteredParticipants.filter(isParticipantOnline);
     const offlineParticipants = filteredParticipants.filter(
-        (participant) => !participant.is_online,
+        (participant) => !isParticipantOnline(participant),
     );
     const groupedParticipants = [
         ...onlineParticipants,
@@ -50,10 +60,10 @@ export default function ParticipantsPanel({
         ? groupedParticipants
         : groupedParticipants.slice(0, 8);
     const visibleOnlineParticipants = visibleParticipants.filter(
-        (participant) => participant.is_online,
+        isParticipantOnline,
     );
     const visibleOfflineParticipants = visibleParticipants.filter(
-        (participant) => !participant.is_online,
+        (participant) => !isParticipantOnline(participant),
     );
 
     const participantGroups = [
@@ -77,9 +87,8 @@ export default function ParticipantsPanel({
         const isSelected = selectedParticipant?.id === participant.id;
         const canModerateParticipant =
             canModerate && !isCurrentUser && !isHost;
-        const onlineStatus = participant.is_online
-            ? 'Online'
-            : 'Offline';
+        const isOnline = isParticipantOnline(participant);
+        const onlineStatus = isOnline ? 'Online' : 'Offline';
 
         return (
             <div
@@ -156,7 +165,7 @@ export default function ParticipantsPanel({
                     <span
                         className={cn(
                             'size-2 rounded-full',
-                            participant.is_online
+                            isOnline
                                 ? 'bg-emerald-500'
                                 : 'bg-muted-foreground/40',
                         )}
