@@ -46,4 +46,16 @@ class Student extends Model
     {
         return $this->hasMany(ExerciseSubmission::class);
     }
+
+    public function badges(): BelongsToMany
+    {
+        return $this->belongsToMany(Badge::class, 'user_badges', 'user_id', 'badge_id')
+            ->withPivot(['earned_at'])
+            ->withTimestamps();
+    }
+
+    public function userBadges(): HasMany
+    {
+        return $this->hasMany(UserBadge::class, 'user_id');
+    }
 }
