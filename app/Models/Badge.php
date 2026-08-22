@@ -18,7 +18,7 @@ class Badge extends Model
 
     public function users(): BelongsToMany
     {
-        return $this->belongsToMany(Student::class, 'user_badges')
+        return $this->belongsToMany(User::class, 'user_badges')
             ->withPivot(['earned_at'])
             ->withTimestamps();
     }

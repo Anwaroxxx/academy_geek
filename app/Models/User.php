@@ -111,4 +111,16 @@ class User extends Authenticatable implements PasskeyUser
     {
         return $this->hasOne(WakaTime::class);
     }
+
+    public function badges(): BelongsToMany
+    {
+        return $this->belongsToMany(Badge::class, 'user_badges', 'user_id', 'badge_id')
+            ->withPivot(['earned_at'])
+            ->withTimestamps();
+    }
+
+    public function userBadges(): HasMany
+    {
+        return $this->hasMany(UserBadge::class, 'user_id');
+    }
 }
