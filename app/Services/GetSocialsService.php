@@ -15,7 +15,7 @@ class GetSocialsService
         try {
             $socials = Http::withHeaders([
                 "x-api-key" => env("CLIENT_SECRET"),
-            ])->get(env("CENTRAL_HOST_URL") . "api/academy/socials");
+            ])->get(rtrim(env("CENTRAL_HOST_URL"), '/') . '/api/academy/socials');
             $socials->throw();
         } catch (\Throwable $th) {
             log($th->getCode() . " : " . $th->getMessage());

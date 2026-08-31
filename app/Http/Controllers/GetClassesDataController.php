@@ -73,7 +73,7 @@ class GetClassesDataController extends Controller
         try {
             $classes = Http::withHeaders([
                 "x-api-key" => env("CLIENT_SECRET"),
-            ])->get(env("CENTRAL_HOST_URL") . env("CENTRAL_HOST_CLASSES_URL"));
+            ])->get(rtrim(env("CENTRAL_HOST_URL"), '/') . '/' . ltrim(env("CENTRAL_HOST_CLASSES_URL"), '/'));
             $classes->throw();
         } catch (\Throwable $th) {
             log($th->getCode() . " : " . $th->getMessage());

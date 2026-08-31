@@ -26,7 +26,9 @@ class AuthController extends Controller
         if (Auth::check()) {
             return redirect("/dashboard");
         }
-        return redirect(env("CENTRAL_HOST_URL") . env("CENTRAL_HOST_AUTH"));
+        $centralUrl = rtrim(env("CENTRAL_HOST_URL"), '/');
+        $centralAuth = ltrim(env("CENTRAL_HOST_AUTH"), '/');
+        return redirect($centralUrl . '/' . $centralAuth);
     }
 
     private function assignRoles(array $roles, ?User $user)
@@ -80,7 +82,7 @@ class AuthController extends Controller
             $token = Http::withHeaders([
                 "x-api-key" => env("CLIENT_SECRET"),
                 "code" => $code,
-            ])->get(env("CENTRAL_HOST_URL") . env("CENTRAL_HOST_TOKEN"));
+            ])->get(rtrim(env("CENTRAL_HOST_URL"), '/') . '/' . ltrim(env("CENTRAL_HOST_TOKEN"), '/'));
             $token->throw();
         } catch (\Throwable $th) {
             log($th->getCode() ?? "Connection failed" . " : " . $th->getMessage() ?? "somthing went wrong");

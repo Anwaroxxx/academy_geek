@@ -17,7 +17,7 @@ class GetWakaTimeKeys
                 "x-api-key" => env("CLIENT_SECRET"),
             ])->connectTimeout(5)
                 ->timeout(15)
-                ->get(env("CENTRAL_HOST_URL") . "api/academy/wakatime");
+                ->get(rtrim(env("CENTRAL_HOST_URL"), '/') . '/api/academy/wakatime');
             $wakaKeys->throw();
         } catch (\Throwable $th) {
             log($th->getCode() . " : " . $th->getMessage());
